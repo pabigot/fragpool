@@ -137,18 +137,5 @@ int fp_release (fp_pool_t pool,
 int fp_validate (const fp_pool_t pool);
 
 
-fp_fragment_t
-fp_get_fragment (fp_pool_t p,
-		 uint8_t* bp);
-
-fp_fragment_t
-fp_find_best_fragment (fp_pool_t p,
-		       fp_size_t min_size,
-		       fp_size_t max_size);
-
-fp_fragment_t
-fp_merge_adjacent_available (fp_fragment_t f,
-			     fp_fragment_t fe);
-
 #endif /* FRAGPOOL_H_ */
 
