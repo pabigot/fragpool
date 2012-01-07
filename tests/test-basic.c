@@ -1,6 +1,8 @@
 #include <fragpool.h>
 #include <CUnit/Basic.h>
 #include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
 
 #define FRAGMENT_IS_ALLOCATED(_f) (0 > (_f)->length)
 #define FRAGMENT_IS_AVAILABLE(_f) (0 < (_f)->length)
@@ -98,19 +100,37 @@ test_fp_request (void)
 }
 
 static void
-config_486 (fp_pool_t p)
+config_pool (fp_pool_t p, ...)
 {
   fp_fragment_t f = p->fragment;
+  const fp_fragment_t fe = f + p->fragment_count;
+  va_list ap;
+  int l;
+
   fp_reset(p);
-  f[0].start = data;
-  f[0].length = 4;
-  f[1].start = f[0].start + f[0].length;
-  f[1].length = 8;
-  f[2].start = f[1].start + f[1].length;
-  f[2].length = 6;
-  f[3].start = f[2].start + f[2].length;
-  f[3].length = -(p->pool_end - f[3].start);
-  CU_ASSERT_NOT_EQUAL(0, fp_validate(p));
+  va_start(ap, p);
+  while (f < fe) {
+    l = va_arg(ap, int);
+    if (FP_MAX_FRAGMENT_SIZE == abs(l)) {
+      break;
+    }
+    f->length = l;
+    f[1].start = f[0].start + abs(l);
+    ++f;
+  }
+  if (f < fe) {
+    f->length = p->pool_end - f->start;
+    if (0 > l) {
+      f->length = - f->length;
+    }
+  }
+  va_end(ap);
+}
+
+static void
+config_486 (fp_pool_t p)
+{
+  config_pool(p, 4, 8, 6, FP_MAX_FRAGMENT_SIZE);
 }
 
 void
@@ -130,7 +150,7 @@ test_fp_merge_adjacent_available ()
   CU_ASSERT_EQUAL(f[0].length, 12);
   CU_ASSERT_PTR_EQUAL(f[1].start, f[0].start+f[0].length);
   CU_ASSERT_EQUAL(f[1].length, 6);
-  CU_ASSERT_EQUAL(f[2].length, -(p->pool_end - f[2].start));
+  CU_ASSERT_EQUAL(f[2].length, (p->pool_end - f[2].start));
 
   config_486(p);
   fp_show_pool(p);
@@ -141,7 +161,7 @@ test_fp_merge_adjacent_available ()
   CU_ASSERT_EQUAL(f[0].length, 4);
   CU_ASSERT_PTR_EQUAL(f[1].start, f[0].start+f[0].length);
   CU_ASSERT_EQUAL(f[1].length, 14);
-  CU_ASSERT_EQUAL(f[2].length, -(p->pool_end - f[2].start));
+  CU_ASSERT_EQUAL(f[2].length, (p->pool_end - f[2].start));
 }
 
 void
@@ -176,14 +196,58 @@ test_fp_release ()
   fp_fragment_t f = p->fragment;
   int rv;
 
-  config_486(p);
-  f[1].length = -f[1].length;
+  config_pool(p, -4, -8, -6, -9, FP_MAX_FRAGMENT_SIZE);
   CU_ASSERT_EQUAL(0, fp_validate(p));
   fp_show_pool(p);
+
+  CU_ASSERT_EQUAL(-8, f[1].length);
   rv = fp_release(p, f[1].start);
   fp_show_pool(p);
   CU_ASSERT_EQUAL(0, rv);
   CU_ASSERT_EQUAL(0, fp_validate(p));
+  CU_ASSERT_EQUAL(8, f[1].length);
+
+  CU_ASSERT_EQUAL(-4, f[0].length);
+  rv = fp_release(p, f[0].start);
+  fp_show_pool(p);
+  CU_ASSERT_EQUAL(0, rv);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  CU_ASSERT_EQUAL(12, f[0].length);
+
+  CU_ASSERT_EQUAL(-6, f[1].length);
+  rv = fp_release(p, f[1].start);
+  fp_show_pool(p);
+  CU_ASSERT_EQUAL(0, rv);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  CU_ASSERT_EQUAL(18, f[0].length);
+
+  CU_ASSERT_EQUAL(-9, f[1].length);
+  rv = fp_release(p, f[1].start);
+  fp_show_pool(p);
+  CU_ASSERT_EQUAL(0, rv);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  CU_ASSERT_EQUAL(POOL_SIZE, f[0].length);
+  CU_ASSERT_EQUAL(0, f[1].length);
+
+  config_pool(p, -4, -8, -FP_MAX_FRAGMENT_SIZE);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  fp_show_pool(p);
+  CU_ASSERT_EQUAL(-8, f[1].length);
+  rv = fp_release(p, f[1].start);
+  fp_show_pool(p);
+  CU_ASSERT_EQUAL(0, rv);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  CU_ASSERT_EQUAL(-4, f[0].length);
+  CU_ASSERT_EQUAL(f[2].length, -(p->pool_end - f[2].start));
+
+  rv = fp_release(p, f[2].start);
+  fp_show_pool(p);
+  CU_ASSERT_EQUAL(0, rv);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  CU_ASSERT_EQUAL(-4, f[0].length);
+  CU_ASSERT_EQUAL(f[1].length, (p->pool_end - f[1].start));
+  CU_ASSERT_EQUAL(0, f[2].length);
+
 }
 
 int
