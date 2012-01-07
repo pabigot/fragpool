@@ -12,11 +12,39 @@ int init_suite (void) { return 0; }
 int clean_suite (void) { return 0; }
 
 #define POOL_SIZE 256
-#define POOL_FRAGMENTS 8
+#define POOL_FRAGMENTS 6
 
 static uint8_t data[POOL_SIZE];
 FP_DEFINE_POOL(pool, data, POOL_FRAGMENTS);
 fp_fragment_t fragment = pool_struct.fixed.fragment;
+
+static void
+config_pool (fp_pool_t p, ...)
+{
+  fp_fragment_t f = p->fragment;
+  const fp_fragment_t fe = f + p->fragment_count;
+  va_list ap;
+  int l;
+
+  fp_reset(p);
+  va_start(ap, p);
+  while (f < fe) {
+    l = va_arg(ap, int);
+    if (FP_MAX_FRAGMENT_SIZE == abs(l)) {
+      break;
+    }
+    f->length = l;
+    f[1].start = f[0].start + abs(l);
+    ++f;
+  }
+  if (f < fe) {
+    f->length = p->pool_end - f->start;
+    if (0 > l) {
+      f->length = - f->length;
+    }
+  }
+  va_end(ap);
+}
 
 void
 test_check_pool ()
@@ -88,42 +116,56 @@ void
 test_fp_request (void)
 {
   fp_pool_t p = pool;
+  fp_fragment_t f = p->fragment;
   uint8_t* b;
   uint8_t* bpe;
 
+  /* Check basic alloc */
   CU_ASSERT_POOL_IS_RESET(p);
   b = fp_request(p, POOL_SIZE, FP_MAX_FRAGMENT_SIZE, &bpe);
   CU_ASSERT_EQUAL(b, p->pool_start);
   CU_ASSERT_EQUAL(bpe, b + POOL_SIZE);
-  fp_reset(p);
-}
 
-static void
-config_pool (fp_pool_t p, ...)
-{
-  fp_fragment_t f = p->fragment;
-  const fp_fragment_t fe = f + p->fragment_count;
-  va_list ap;
-  int l;
+  /* Check that allocation finds first appropriately-sized block */
+  config_pool(p, 32, -32, 64, -64, -FP_MAX_FRAGMENT_SIZE);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  b = fp_request(p, 24, 32, &bpe);
+  printf("request got %p to %p for %u octets\n", b, bpe, (int)(bpe-b));
+  CU_ASSERT_EQUAL(b, p->pool_start);
+  CU_ASSERT_EQUAL(bpe, b + 32);
+  CU_ASSERT_EQUAL(p->pool_start+32, f[1].start);
+  CU_ASSERT_EQUAL(-32, f[1].length);
 
-  fp_reset(p);
-  va_start(ap, p);
-  while (f < fe) {
-    l = va_arg(ap, int);
-    if (FP_MAX_FRAGMENT_SIZE == abs(l)) {
-      break;
-    }
-    f->length = l;
-    f[1].start = f[0].start + abs(l);
-    ++f;
-  }
-  if (f < fe) {
-    f->length = p->pool_end - f->start;
-    if (0 > l) {
-      f->length = - f->length;
-    }
-  }
-  va_end(ap);
+  /* Check that allocation finds first appropriately-sized block
+     taking maximum request into account: skip 32@0 and use 64@2 */
+  config_pool(p, 32, -32, 64, -64, -FP_MAX_FRAGMENT_SIZE);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  b = fp_request(p, 24, 64, &bpe);
+  printf("request got %p to %p for %u octets\n", b, bpe, (int)(bpe-b));
+  CU_ASSERT_EQUAL(b, f[2].start);
+  CU_ASSERT_EQUAL(bpe, f[2].start-f[2].length);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+
+  /* Check that allocation finds first appropriately-sized block
+     taking maximum request into account: use 32@0 */
+  config_pool(p, 32, -32, -64, -64, -FP_MAX_FRAGMENT_SIZE);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  b = fp_request(p, 24, 64, &bpe);
+  printf("request got %p to %p for %u octets\n", b, bpe, (int)(bpe-b));
+  CU_ASSERT_EQUAL(b, f[0].start);
+  CU_ASSERT_EQUAL(bpe, f[0].start-f[0].length);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+
+  /* Check that allocation reduces first appropriately-sized block, if
+     fragments are available. */
+  config_pool(p, 32, -32, 64, -64, -FP_MAX_FRAGMENT_SIZE);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  b = fp_request(p, 24, 48, &bpe);
+  printf("request got %p to %p for %u octets\n", b, bpe, (int)(bpe-b));
+  CU_ASSERT_EQUAL(b, p->pool_start);
+  CU_ASSERT_EQUAL(bpe, b + 24);
+  CU_ASSERT_EQUAL(bpe, f[1].start);
+  CU_ASSERT_EQUAL(-40, f[1].length);
 }
 
 void
@@ -246,6 +288,7 @@ main (int argc,
     { "fp_reset", test_fp_reset },
     { "fp_validate", test_fp_validate },
     { "fp_request_params", test_fp_request_params },
+    { "fp_request", test_fp_request },
     { "fp_merge_adjacent_available", test_fp_merge_adjacent_available },
     { "fp_get_fragment", test_fp_get_fragment },
     { "fp_release_params", test_fp_release_params },
