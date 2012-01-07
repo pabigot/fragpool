@@ -93,10 +93,12 @@ void fp_reset (fp_pool_t pool);
 /** Obtain a block of memory from the pool.
  *
  * A block of memory of at least min_size octets is allocated from the
- * pool and returned to the caller.  The value pointed to by buffer_endp is
- * updated to reflect the first byte past the end of the allocated
- * region.  The largest available fragment that does not exceed
- * max_size is returned.
+ * pool and returned to the caller.  The value pointed to by
+ * buffer_endp is updated to reflect the first byte past the end of
+ * the allocated region.  The largest available fragment that does not
+ * exceed max_size is returned.  If the requested maximum size is
+ * larger than the selected fragment, and there are slots available,
+ * the remainder is retained as an available fragment.
  * 
  * @param pool the pool from which memory is obtained
  * @param min_size the minimum size acceptable fragment

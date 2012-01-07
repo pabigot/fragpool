@@ -128,34 +128,35 @@ fp_request (fp_pool_t pool,
 	    fp_size_t max_size,
 	    uint8_t** buffer_endp)
 {
-  fp_fragment_t bf;
+  fp_fragment_t f;
   const fp_fragment_t fe = pool->fragment + pool->fragment_count;
-  fp_fragment_t nbf;
 
   /* Validate arguments */
   if ((0 >= min_size) || (min_size > max_size) || (NULL == buffer_endp)) {
     return NULL;
   }
-  bf = find_best_fragment(pool, min_size, max_size);
-  if (NULL == bf) {
+  f = find_best_fragment(pool, min_size, max_size);
+  if (NULL == f) {
     return NULL;
   }
-  nbf = bf+1;
-  if ((nbf < fe) && (bf->length > max_size)) {
-    fp_size_t xl = bf->length - max_size;
-    if (FRAGMENT_IS_INACTIVE(nbf)) {
-      nbf->start = bf->start + max_size;
-      nbf->length = xl;
-      bf->length -= xl;
-    } else if (FRAGMENT_IS_AVAILABLE(nbf)) {
-      nbf->start -= xl;
-      nbf->length += xl;
-      bf->length -= xl;
+  if (((f+1) < fe) && (f->length > max_size)) {
+    fp_size_t xl = f->length - max_size;
+    fp_fragment_t nf = f;
+    while ((++nf < fe) && (!FRAGMENT_IS_INACTIVE(nf))) {
+      ;
+    }
+    if (nf < fe) {
+      do {
+	nf[0] = nf[-1];
+      } while (--nf > f);
+      f[1].start = f[0].start + max_size;
+      f[1].length = xl;
+      f[0].length -= xl;
     }
   }
-  *buffer_endp = bf->start + bf->length;
-  bf->length = -bf->length;
-  return bf->start;
+  *buffer_endp = f->start + f->length;
+  f->length = -f->length;
+  return f->start;
 }
 
 static fp_fragment_t

@@ -24,26 +24,51 @@ config_pool (fp_pool_t p, ...)
   fp_fragment_t f = p->fragment;
   const fp_fragment_t fe = f + p->fragment_count;
   va_list ap;
-  int l;
+  int len;
 
   fp_reset(p);
   va_start(ap, p);
   while (f < fe) {
-    l = va_arg(ap, int);
-    if (FP_MAX_FRAGMENT_SIZE == abs(l)) {
+    len = va_arg(ap, int);
+    if (FP_MAX_FRAGMENT_SIZE == abs(len)) {
       break;
     }
-    f->length = l;
-    f[1].start = f[0].start + abs(l);
+    f->length = len;
+    f[1].start = f[0].start + abs(len);
     ++f;
   }
   if (f < fe) {
     f->length = p->pool_end - f->start;
-    if (0 > l) {
+    if (0 > len) {
       f->length = - f->length;
     }
   }
   va_end(ap);
+}
+
+#define RF_DONE_WITH_LEFTOVERS -2
+#define RF_DONE -1
+static void
+release_fragments (fp_pool_t p, ...)
+{
+  fp_fragment_t f = p->fragment;
+  va_list ap;
+  int rc;
+  int fi;
+
+  va_start(ap, p);
+  while (1) {
+    fi = va_arg(ap, int);
+    if (0 > fi) {
+      break;
+    }
+    rc = fp_release(p, f[fi].start);
+    CU_ASSERT_EQUAL(0, rc);
+    CU_ASSERT_EQUAL(0, fp_validate(p));
+  }
+  if (RF_DONE == fi) {
+    CU_ASSERT_EQUAL(POOL_SIZE, f[0].length);
+  }
 }
 
 void
@@ -55,7 +80,7 @@ test_check_pool ()
 }
 
 static void
-fp_show_fragments (fp_fragment_t f,
+show_fragments (fp_fragment_t f,
 		   fp_fragment_t fe)
 {
   do {
@@ -70,15 +95,26 @@ fp_show_fragments (fp_fragment_t f,
 }
 
 static void
-fp_show_pool (fp_pool_t p)
+show_pool (fp_pool_t p)
 {
   fp_fragment_t f = p->fragment;
   const fp_fragment_t fe = f + p->fragment_count;
   printf("Pool %p with %u fragments and %u bytes from %p to %p:\n",
 	 (void*)p, p->fragment_count, (fp_size_t)(p->pool_end-p->pool_start),
 	 p->pool_start, p->pool_end);
-  fp_show_fragments(f, fe);
+  show_fragments(f, fe);
 }
+
+static void
+show_short_pool (fp_pool_t p)
+{
+  int fi;
+  for (fi = 0; fi < p->fragment_count; fi++) {
+    printf(" %d@%u", p->fragment[fi].length, fi);
+  }
+  printf("\n");
+}
+#define SHOW_SHORT_POOL(_p) do { printf(__FILE__ ":%u:", __LINE__); show_short_pool(_p); } while (0)
 
 #define CU_ASSERT_POOL_IS_RESET(_p) do {				\
     CU_ASSERT_EQUAL(p->fragment[0].start, p->pool_start);		\
@@ -128,9 +164,10 @@ test_fp_request (void)
 
   /* Check that allocation finds first appropriately-sized block */
   config_pool(p, 32, -32, 64, -64, -FP_MAX_FRAGMENT_SIZE);
+  /* 32@0 -32@1 64@2 -64@3 -64@4 0@5 */
   CU_ASSERT_EQUAL(0, fp_validate(p));
   b = fp_request(p, 24, 32, &bpe);
-  printf("request got %p to %p for %u octets\n", b, bpe, (int)(bpe-b));
+  /* -32@0 -32@1 64@2 -64@3 -64@4 0@5 */
   CU_ASSERT_EQUAL(b, p->pool_start);
   CU_ASSERT_EQUAL(bpe, b + 32);
   CU_ASSERT_EQUAL(p->pool_start+32, f[1].start);
@@ -139,9 +176,10 @@ test_fp_request (void)
   /* Check that allocation finds first appropriately-sized block
      taking maximum request into account: skip 32@0 and use 64@2 */
   config_pool(p, 32, -32, 64, -64, -FP_MAX_FRAGMENT_SIZE);
+  /* 32@0 -32@1 64@2 -64@3 -64@4 0@5 */
   CU_ASSERT_EQUAL(0, fp_validate(p));
   b = fp_request(p, 24, 64, &bpe);
-  printf("request got %p to %p for %u octets\n", b, bpe, (int)(bpe-b));
+  /* 32@0 -32@1 -64@2 -64@3 -64@4 0@5 */
   CU_ASSERT_EQUAL(b, f[2].start);
   CU_ASSERT_EQUAL(bpe, f[2].start-f[2].length);
   CU_ASSERT_EQUAL(0, fp_validate(p));
@@ -149,23 +187,40 @@ test_fp_request (void)
   /* Check that allocation finds first appropriately-sized block
      taking maximum request into account: use 32@0 */
   config_pool(p, 32, -32, -64, -64, -FP_MAX_FRAGMENT_SIZE);
+  /* 32@0 -32@1 -64@2 -64@3 -64@4 0@5 */
   CU_ASSERT_EQUAL(0, fp_validate(p));
   b = fp_request(p, 24, 64, &bpe);
-  printf("request got %p to %p for %u octets\n", b, bpe, (int)(bpe-b));
+  /* -32@0 -32@1 -64@2 -64@3 -64@4 0@5 */
   CU_ASSERT_EQUAL(b, f[0].start);
   CU_ASSERT_EQUAL(bpe, f[0].start-f[0].length);
   CU_ASSERT_EQUAL(0, fp_validate(p));
 
   /* Check that allocation reduces first appropriately-sized block, if
-     fragments are available. */
+     fragments are available.  This one picks 64@2 and changes it to
+     48@2 inserting a new fragment 24@3. */
   config_pool(p, 32, -32, 64, -64, -FP_MAX_FRAGMENT_SIZE);
+  /* 32@0 -32@1 64@2 -64@3 -64@4 0@5 */
   CU_ASSERT_EQUAL(0, fp_validate(p));
   b = fp_request(p, 24, 48, &bpe);
-  printf("request got %p to %p for %u octets\n", b, bpe, (int)(bpe-b));
+  /* 32@0 -32@1 -48@2 16@3 -64@4 -64@5 */
+  CU_ASSERT_EQUAL(b, p->pool_start+64);
+  CU_ASSERT_EQUAL(bpe, b + 48);
+  CU_ASSERT_EQUAL(bpe, f[3].start);
+  CU_ASSERT_EQUAL(16, f[3].length);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+
+  /* This one picks 32@0, but can't insert an extra fragment because
+   * all six slots are filled. */
+  /* 32@0 -32@1 -48@2 16@3 -64@4 -64@5 */
+  b = fp_request(p, 16, 24, &bpe);
+  /* -32@0 -32@1 -48@2 16@3 -64@4 -64@5 */
   CU_ASSERT_EQUAL(b, p->pool_start);
-  CU_ASSERT_EQUAL(bpe, b + 24);
+  CU_ASSERT_EQUAL(bpe, b + 32);
   CU_ASSERT_EQUAL(bpe, f[1].start);
-  CU_ASSERT_EQUAL(-40, f[1].length);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+
+  /* -32@1, -64@4, -32@0, -48@2, -64@5 */
+  release_fragments(p, 1, 4, 0, 1, 1, RF_DONE);
 }
 
 void
@@ -297,7 +352,9 @@ main (int argc,
   const int ntests = sizeof(tests) / sizeof(*tests);
   int i;
   
-  (void)fp_show_pool;
+  (void)show_pool;
+  (void)show_short_pool;
+  (void)release_fragments;
 
   rc = CU_initialize_registry();
   if (CUE_SUCCESS != rc) {
