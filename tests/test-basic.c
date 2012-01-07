@@ -113,6 +113,12 @@ release_fragments (fp_pool_t p, ...)
   }
 }
 
+#define PO_ALLOCATE 'a'
+#define PO_RELEASE 'r'
+#define PO_CHECK_FRAGMENT_LENGTH 'C'
+#define PO_VALIDATE 'V'
+#define PO_CHECK_IS_RESET 'R'
+
 static void
 execute_pool_ops (fp_pool_t p, ...)
 {
@@ -127,7 +133,7 @@ execute_pool_ops (fp_pool_t p, ...)
   putchar('\n');
   while ((cmd = va_arg(ap,int))) {
     switch (cmd) {
-    case 'a': {			/* allocate: 'a' min_size max_size */
+    case PO_ALLOCATE: {	 /* allocate: PO_ALLOCATE min_size max_size */
       int min_size = va_arg(ap, int);
       int max_size = va_arg(ap, int);
       uint8_t* b;
@@ -142,7 +148,7 @@ execute_pool_ops (fp_pool_t p, ...)
       }
       break;
     }
-    case 'r': {			/* release: 'r' fragment_index */
+    case PO_RELEASE: {	      /* release: PO_RELEASE fragment_index */
       int fi = va_arg(ap, int);
       uint8_t* b = p->fragment[fi].start;
       int rc;
@@ -151,7 +157,7 @@ execute_pool_ops (fp_pool_t p, ...)
       printf("returned %d\n", rc);
       break;
     }
-    case 'C': {			/* check length: 'C' fragment_index expected_length */
+    case PO_CHECK_FRAGMENT_LENGTH: { /* check length: PO_CHECK_FRAGMENT_LENGTH fragment_index expected_length */
       int fi = va_arg(ap, int);
       int len = p->fragment[fi].length;
       int expected_len = va_arg(ap, int);
@@ -160,12 +166,12 @@ execute_pool_ops (fp_pool_t p, ...)
       CU_ASSERT_EQUAL(expected_len, len);
       break;
     }
-    case 'V': {			/* validate: 'V' */
+    case PO_VALIDATE: {		/* validate: PO_VALIDATE */
       printf("\tvalidating pool\n");
       CU_ASSERT_EQUAL(0, fp_validate(p));
       break;
     }
-    case 'R': {			/* check reset: 'R' */
+    case PO_CHECK_IS_RESET: {			/* check reset: PO_CHECK_IS_RESET */
       printf("\tchecking pool is reset\n");
       CU_ASSERT_POOL_IS_RESET(p);
       break;
@@ -399,12 +405,13 @@ test_execute_alloc ()
 {
   fp_reset(pool);
   execute_pool_ops(pool,
-		   'a', 16, 64,
-		   'C', 0, -64,
-		   'C', 1, 192,
-		   'C', 2, 0,
-		   'r', 0,
-		   'R',
+		   PO_ALLOCATE, 16, 64,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, 192,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, 0,
+		   PO_VALIDATE,
+		   PO_RELEASE, 0,
+		   PO_CHECK_IS_RESET,
 		   0);
 }
 
