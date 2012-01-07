@@ -121,41 +121,59 @@ fp_validate (fp_pool_t p)
   return FPVal_OK;
 }
 
+/** If a fragment slot is available, trim excess octets off the tail
+ * of the provided fragment and make it available as a new fragment.
+ *
+ * @param f an allocated fragment with more space than it needs
+ *
+ * @param fe the end of the fragment array
+ *
+ * @param excess the number of trailing octets unneeded by f
+ */
+static void
+release_suffix (fp_fragment_t f,
+		fp_fragment_t fe,
+		fp_size_t excess)
+{
+  fp_fragment_t nf = f;
+  while ((++nf < fe) && (!FRAGMENT_IS_INACTIVE(nf))) {
+    ;
+  }
+  if (nf < fe) {
+    do {
+      nf[0] = nf[-1];
+    } while (--nf > f);
+    f[0].length += excess;
+    f[1].start = f[0].start - f[0].length;
+    f[1].length = excess;
+  }
+}
 
 uint8_t*
 fp_request (fp_pool_t pool,
 	    fp_size_t min_size,
 	    fp_size_t max_size,
-	    uint8_t** buffer_endp)
+	    uint8_t** fragment_endp)
 {
   fp_fragment_t f;
+  fp_size_t flen;
   const fp_fragment_t fe = pool->fragment + pool->fragment_count;
 
   /* Validate arguments */
-  if ((0 >= min_size) || (min_size > max_size) || (NULL == buffer_endp)) {
+  if ((0 >= min_size) || (min_size > max_size) || (NULL == fragment_endp)) {
     return NULL;
   }
   f = find_best_fragment(pool, min_size, max_size);
   if (NULL == f) {
     return NULL;
   }
-  if (((f+1) < fe) && (f->length > max_size)) {
-    fp_size_t xl = f->length - max_size;
-    fp_fragment_t nf = f;
-    while ((++nf < fe) && (!FRAGMENT_IS_INACTIVE(nf))) {
-      ;
-    }
-    if (nf < fe) {
-      do {
-	nf[0] = nf[-1];
-      } while (--nf > f);
-      f[1].start = f[0].start + max_size;
-      f[1].length = xl;
-      f[0].length -= xl;
-    }
-  }
-  *buffer_endp = f->start + f->length;
+  /* Mark the fragment allocated, then try to release any excess */
+  flen = f->length;
   f->length = -f->length;
+  if (((f+1) < fe) && (flen > max_size)) {
+    release_suffix(f, fe, flen - max_size);
+  }
+  *fragment_endp = f->start - f->length;
   return f->start;
 }
 
