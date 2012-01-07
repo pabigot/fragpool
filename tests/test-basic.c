@@ -77,7 +77,6 @@ test_fp_request_params (void)
 {
   fp_pool_t p = pool;
   uint8_t* bpe;
-  fp_show_pool(p);
   CU_ASSERT_POOL_IS_RESET(p);
   CU_ASSERT_PTR_NULL(fp_request(p, 0, 0, &bpe));
   CU_ASSERT_PTR_NULL(fp_request(p, 0, FP_MAX_FRAGMENT_SIZE, &bpe));
@@ -142,9 +141,7 @@ test_fp_merge_adjacent_available ()
   fp_fragment_t rf;
 
   config_486(p);
-  fp_show_pool(p);
   rf = fp_merge_adjacent_available(f, fe);
-  fp_show_pool(p);
   CU_ASSERT_EQUAL(rf, f);
   CU_ASSERT_PTR_EQUAL(f[0].start, data);
   CU_ASSERT_EQUAL(f[0].length, 12);
@@ -153,9 +150,7 @@ test_fp_merge_adjacent_available ()
   CU_ASSERT_EQUAL(f[2].length, (p->pool_end - f[2].start));
 
   config_486(p);
-  fp_show_pool(p);
   rf = fp_merge_adjacent_available(f+1, fe);
-  fp_show_pool(p);
   CU_ASSERT_EQUAL(rf, f+1);
   CU_ASSERT_PTR_EQUAL(f[0].start, data);
   CU_ASSERT_EQUAL(f[0].length, 4);
@@ -184,7 +179,6 @@ test_fp_release_params ()
   fp_fragment_t f = p->fragment;
 
   config_486(p);
-  fp_show_pool(p);
   CU_ASSERT_EQUAL(FP_EINVAL, fp_release(p, NULL));
   CU_ASSERT_EQUAL(FP_EINVAL, fp_release(p, f[0].start));
 }
@@ -198,32 +192,27 @@ test_fp_release ()
 
   config_pool(p, -4, -8, -6, -9, FP_MAX_FRAGMENT_SIZE);
   CU_ASSERT_EQUAL(0, fp_validate(p));
-  fp_show_pool(p);
 
   CU_ASSERT_EQUAL(-8, f[1].length);
   rv = fp_release(p, f[1].start);
-  fp_show_pool(p);
   CU_ASSERT_EQUAL(0, rv);
   CU_ASSERT_EQUAL(0, fp_validate(p));
   CU_ASSERT_EQUAL(8, f[1].length);
 
   CU_ASSERT_EQUAL(-4, f[0].length);
   rv = fp_release(p, f[0].start);
-  fp_show_pool(p);
   CU_ASSERT_EQUAL(0, rv);
   CU_ASSERT_EQUAL(0, fp_validate(p));
   CU_ASSERT_EQUAL(12, f[0].length);
 
   CU_ASSERT_EQUAL(-6, f[1].length);
   rv = fp_release(p, f[1].start);
-  fp_show_pool(p);
   CU_ASSERT_EQUAL(0, rv);
   CU_ASSERT_EQUAL(0, fp_validate(p));
   CU_ASSERT_EQUAL(18, f[0].length);
 
   CU_ASSERT_EQUAL(-9, f[1].length);
   rv = fp_release(p, f[1].start);
-  fp_show_pool(p);
   CU_ASSERT_EQUAL(0, rv);
   CU_ASSERT_EQUAL(0, fp_validate(p));
   CU_ASSERT_EQUAL(POOL_SIZE, f[0].length);
@@ -231,17 +220,14 @@ test_fp_release ()
 
   config_pool(p, -4, -8, -FP_MAX_FRAGMENT_SIZE);
   CU_ASSERT_EQUAL(0, fp_validate(p));
-  fp_show_pool(p);
   CU_ASSERT_EQUAL(-8, f[1].length);
   rv = fp_release(p, f[1].start);
-  fp_show_pool(p);
   CU_ASSERT_EQUAL(0, rv);
   CU_ASSERT_EQUAL(0, fp_validate(p));
   CU_ASSERT_EQUAL(-4, f[0].length);
   CU_ASSERT_EQUAL(f[2].length, -(p->pool_end - f[2].start));
 
   rv = fp_release(p, f[2].start);
-  fp_show_pool(p);
   CU_ASSERT_EQUAL(0, rv);
   CU_ASSERT_EQUAL(0, fp_validate(p));
   CU_ASSERT_EQUAL(-4, f[0].length);
@@ -273,6 +259,8 @@ main (int argc,
   const int ntests = sizeof(tests) / sizeof(*tests);
   int i;
   
+  (void)fp_show_pool;
+
   rc = CU_initialize_registry();
   if (CUE_SUCCESS != rc) {
     fprintf(stderr, "CU_initialize_registry %d: %s\n", rc, CU_get_error_msg());
