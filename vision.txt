@@ -1,0 +1,36 @@
+The fragpool infrastructure is intended to provide a solution to a specific
+memory management problem in a system that does not support dynamic memory
+allocation.  The problem is management of variable length buffers used in a
+communication stack.
+
+A fragment pool consists of a fixed block of contiguous memory, and a fixed
+array of slots.  The slots represent an ordered partition of the memory into
+fragments.  At the macro level each fragment is either in use or available
+for allocation.  Adjacent fragments of the same type are immediately merged
+into a single larger fragment.
+
+The fundamental operations on the fragment pool are:
+
+(fp, fpe) = request(n, m) -- Obtain the longest available fragment that is
+at least n octets long, but need not be longer than m octets.  The request
+operation must be executable within a hard interrupt handler.  The fragment
+start and end address are returned.
+
+(fp, fpe) = extend(fp, m) -- Attempt to change the length of the fragment
+in-place.  m may be larger or smaller than the original fragment length.
+The returned fp will be the same as the passed fp, and the contents of the
+original fragment will be unchanged.  The caller must check fpe to determine
+whether the extension succeeded.
+
+(fp, fpe) = reallocate(fp, n, m) -- attempt to reallocate the fragment to a
+new size m.  m may be larger or smaller than the original fragment length.
+The returned fp may be different from than the passed fp, for both
+expansions and contractions.  The first n octets starting at fp will be
+preserved.
+
+release(fp) -- Release the fragment to the pool.
+
+The fragment pool also provides a semaphore that is posted when memory is
+returned to the pool in a way that increases the size of the largest
+available fragment.
+
