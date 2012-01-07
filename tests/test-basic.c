@@ -19,6 +19,48 @@ FP_DEFINE_POOL(pool, data, POOL_FRAGMENTS);
 fp_fragment_t fragment = pool_struct.fixed.fragment;
 
 static void
+show_fragments (fp_fragment_t f,
+		   fp_fragment_t fe)
+{
+  do {
+    if (FRAGMENT_IS_ALLOCATED(f)) {
+      printf(" %u allocated at %p\n", -f->length, f->start);
+    } else if (FRAGMENT_IS_AVAILABLE(f)) {
+      printf(" %u available at %p\n", f->length, f->start);
+    } else {
+      printf(" unused fragment\n");
+    }
+  } while (++f < fe);
+}
+
+static void
+show_pool (fp_pool_t p)
+{
+  fp_fragment_t f = p->fragment;
+  const fp_fragment_t fe = f + p->fragment_count;
+  printf("Pool %p with %u fragments and %u bytes from %p to %p:\n",
+	 (void*)p, p->fragment_count, (fp_size_t)(p->pool_end-p->pool_start),
+	 p->pool_start, p->pool_end);
+  show_fragments(f, fe);
+}
+
+static void
+show_short_pool (fp_pool_t p)
+{
+  int fi;
+  for (fi = 0; fi < p->fragment_count; fi++) {
+    printf(" %d@%u", p->fragment[fi].length, fi);
+  }
+}
+#define SHOW_SHORT_POOL(_p) do { printf(__FILE__ ":%u:", __LINE__); show_short_pool(_p); putchar('\n'); } while (0)
+
+#define CU_ASSERT_POOL_IS_RESET(_p) do {				\
+    CU_ASSERT_EQUAL(p->fragment[0].start, p->pool_start);		\
+    CU_ASSERT_EQUAL(p->fragment[0].length, (p->pool_end - p->pool_start)); \
+    CU_ASSERT_EQUAL(0, fp_validate(_p));				\
+  } while (0)
+  							  \
+static void
 config_pool (fp_pool_t p, ...)
 {
   fp_fragment_t f = p->fragment;
@@ -67,8 +109,76 @@ release_fragments (fp_pool_t p, ...)
     CU_ASSERT_EQUAL(0, fp_validate(p));
   }
   if (RF_DONE == fi) {
-    CU_ASSERT_EQUAL(POOL_SIZE, f[0].length);
+    CU_ASSERT_POOL_IS_RESET(p);
   }
+}
+
+static void
+execute_pool_ops (fp_pool_t p, ...)
+{
+  va_list ap;
+  int cmd;
+
+  va_start(ap, p);
+  printf("\nExecuting commands on pool %p with %u fragments and total size %u:\n",
+	 (void*)p, p->fragment_count, (unsigned int)(p->pool_end-p->pool_start));
+  printf("initial state:");
+  show_short_pool(p);
+  putchar('\n');
+  while ((cmd = va_arg(ap,int))) {
+    switch (cmd) {
+    case 'a': {			/* allocate: 'a' min_size max_size */
+      int min_size = va_arg(ap, int);
+      int max_size = va_arg(ap, int);
+      uint8_t* b;
+      uint8_t* be;
+      
+      printf("\tallocate %u..%u ... ", min_size, max_size);
+      b = fp_request(p, min_size, max_size, &be);
+      if (NULL != b) {
+	printf("produced %p len %u\n", b, (unsigned int)(be-b));
+      } else {
+	printf("failed\n");
+      }
+      break;
+    }
+    case 'r': {			/* release: 'r' fragment_index */
+      int fi = va_arg(ap, int);
+      uint8_t* b = p->fragment[fi].start;
+      int rc;
+      printf("\trelease fragment %u at %p ... ", fi, b);
+      rc = fp_release(p, b);
+      printf("returned %d\n", rc);
+      break;
+    }
+    case 'C': {			/* check length: 'C' fragment_index expected_length */
+      int fi = va_arg(ap, int);
+      int len = p->fragment[fi].length;
+      int expected_len = va_arg(ap, int);
+      
+      printf("\tchecking fragment %u length %d expecting %d\n", fi, len, expected_len);
+      CU_ASSERT_EQUAL(expected_len, len);
+      break;
+    }
+    case 'V': {			/* validate: 'V' */
+      printf("\tvalidating pool\n");
+      CU_ASSERT_EQUAL(0, fp_validate(p));
+      break;
+    }
+    case 'R': {			/* check reset: 'R' */
+      printf("\tchecking pool is reset\n");
+      CU_ASSERT_POOL_IS_RESET(p);
+      break;
+    }
+    default:
+      printf("Unrecognized command character '%c'\n", cmd);
+      CU_FAIL("execute_pool_ops");
+    }
+    printf("\tpool:");
+    show_short_pool(p);
+    putchar('\n');
+  }
+  printf("completed execution of pool operations\n");
 }
 
 void
@@ -79,49 +189,6 @@ test_check_pool ()
   CU_ASSERT_EQUAL(sizeof(pool_struct.fixed.fragment), POOL_FRAGMENTS*sizeof(struct fp_fragment_t));
 }
 
-static void
-show_fragments (fp_fragment_t f,
-		   fp_fragment_t fe)
-{
-  do {
-    if (FRAGMENT_IS_ALLOCATED(f)) {
-      printf(" %u allocated at %p\n", -f->length, f->start);
-    } else if (FRAGMENT_IS_AVAILABLE(f)) {
-      printf(" %u available at %p\n", f->length, f->start);
-    } else {
-      printf(" unused fragment\n");
-    }
-  } while (++f < fe);
-}
-
-static void
-show_pool (fp_pool_t p)
-{
-  fp_fragment_t f = p->fragment;
-  const fp_fragment_t fe = f + p->fragment_count;
-  printf("Pool %p with %u fragments and %u bytes from %p to %p:\n",
-	 (void*)p, p->fragment_count, (fp_size_t)(p->pool_end-p->pool_start),
-	 p->pool_start, p->pool_end);
-  show_fragments(f, fe);
-}
-
-static void
-show_short_pool (fp_pool_t p)
-{
-  int fi;
-  for (fi = 0; fi < p->fragment_count; fi++) {
-    printf(" %d@%u", p->fragment[fi].length, fi);
-  }
-  printf("\n");
-}
-#define SHOW_SHORT_POOL(_p) do { printf(__FILE__ ":%u:", __LINE__); show_short_pool(_p); } while (0)
-
-#define CU_ASSERT_POOL_IS_RESET(_p) do {				\
-    CU_ASSERT_EQUAL(p->fragment[0].start, p->pool_start);		\
-    CU_ASSERT_EQUAL(p->fragment[0].length, (p->pool_end - p->pool_start)); \
-    CU_ASSERT_EQUAL(0, fp_validate(_p));					\
-  } while (0)
-  							  \
 void
 test_fp_reset (void)
 {
@@ -325,7 +392,20 @@ test_fp_release ()
   CU_ASSERT_EQUAL(-10, f[0].length);
   CU_ASSERT_EQUAL(f[1].length, (p->pool_end - f[1].start));
   CU_ASSERT_EQUAL(0, f[2].length);
+}
 
+void
+test_execute_alloc ()
+{
+  fp_reset(pool);
+  execute_pool_ops(pool,
+		   'a', 16, 64,
+		   'C', 0, -64,
+		   'C', 1, 192,
+		   'C', 2, 0,
+		   'r', 0,
+		   'R',
+		   0);
 }
 
 int
@@ -348,6 +428,7 @@ main (int argc,
     { "fp_get_fragment", test_fp_get_fragment },
     { "fp_release_params", test_fp_release_params },
     { "fp_release", test_fp_release },
+    { "execute_alloc", test_execute_alloc },
   };
   const int ntests = sizeof(tests) / sizeof(*tests);
   int i;
