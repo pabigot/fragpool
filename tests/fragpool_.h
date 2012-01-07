@@ -10,7 +10,7 @@ fp_find_best_fragment (fp_pool_t p,
 		       fp_size_t min_size,
 		       fp_size_t max_size);
 
-fp_fragment_t
+void
 fp_merge_adjacent_available (fp_fragment_t f,
 			     fp_fragment_t fe);
 

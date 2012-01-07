@@ -191,18 +191,28 @@ fp_request (fp_pool_t pool,
   return f->start;
 }
 
-static fp_fragment_t
+/** Extend the fragment by the space in the following fragment.
+ *
+ * @param f is a fragment (either allocated or available), and the
+ * next fragment is available.
+ * 
+ * @param fe is the end of the fragment array
+ */
+static void
 merge_adjacent_available (fp_fragment_t f,
 			  fp_fragment_t fe)
 {
   fp_fragment_t nf = f+1;
 
-  f->length += nf->length;
+  if (FRAGMENT_IS_ALLOCATED(f)) {
+    f->length -= nf->length;
+  } else {
+    f->length += nf->length;
+  }
   while ((++nf < fe) && (! FRAGMENT_IS_INACTIVE(nf))) {
     nf[-1] = nf[0];
   }
   nf[-1].length = 0;
-  return f;
 }
 
 int
@@ -218,11 +228,11 @@ fp_release (fp_pool_t p,
   }
   f->length = -f->length;
   if ((p->fragment < f) && FRAGMENT_IS_AVAILABLE(f-1)) {
-    f = merge_adjacent_available(f-1, fe);
+    merge_adjacent_available(--f, fe);
   }
   nf = f+1;
   if ((nf < fe) && FRAGMENT_IS_AVAILABLE(nf)) {
-    (void)merge_adjacent_available(f, fe);
+    merge_adjacent_available(f, fe);
   }
   return 0;
 }
@@ -244,9 +254,21 @@ fp_resize (fp_pool_t p,
   if (nf < fe) {
     fp_size_t cur_size = - f->length;
     if (new_size < cur_size) {
+      /* Give back, if possible */
       release_suffix(f, p->fragment + p->fragment_count, cur_size - new_size);
     } else if (new_size > cur_size) {
       /* Extend to following fragment? */
+      if (FRAGMENT_IS_AVAILABLE(nf)) {
+	fp_size_t lacking = new_size - cur_size;
+	if (nf->length > lacking) {
+	  /* More available than needed; take only what's requested */
+	  nf->start += lacking;
+	  nf->length -= lacking;
+	  f->length -= lacking;
+	} else {
+	  merge_adjacent_available(f, fe);
+	}
+      }
     }
   }
   *fragment_endp = f->start - f->length;
@@ -269,9 +291,9 @@ fp_find_best_fragment (fp_pool_t p,
   return find_best_fragment(p, min_size, max_size);
 }
 
-fp_fragment_t
+void
 fp_merge_adjacent_available (fp_fragment_t f,
 			     fp_fragment_t fe)
 {
-  return merge_adjacent_available (f, fe);
+  merge_adjacent_available (f, fe);
 }

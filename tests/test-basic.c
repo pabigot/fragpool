@@ -164,13 +164,25 @@ execute_pool_ops (fp_pool_t p, ...)
       int len = p->fragment[fi].length;
       int expected_len = va_arg(ap, int);
       
-      printf("\tchecking fragment %u length %d expecting %d\n", fi, len, expected_len);
-      CU_ASSERT_EQUAL(expected_len, len);
+      printf("\tchecking fragment %u length %d ... ", fi, len);
+      if (expected_len == len) {
+	printf("as expected\n");
+      } else {
+	printf("ERROR expected %d\n", expected_len);
+	CU_FAIL("exec check fragment length");
+      }
       break;
     }
     case PO_VALIDATE: {		/* validate: PO_VALIDATE */
-      printf("\tvalidating pool\n");
-      CU_ASSERT_EQUAL(0, fp_validate(p));
+      int rc;
+      printf("\tvalidating pool ... ");
+      rc = fp_validate(p);
+      if (0 == rc) {
+	printf("succeeded\n");
+      } else {
+	printf("FAILED\n");
+	CU_FAIL("pool validation");
+      }
       break;
     }
     case PO_CHECK_IS_RESET: {			/* check reset: PO_CHECK_IS_RESET */
@@ -320,11 +332,9 @@ test_fp_merge_adjacent_available ()
   fp_pool_t p = pool;
   fp_fragment_t f = p->fragment;
   fp_fragment_t fe = p->fragment + p->fragment_count;
-  fp_fragment_t rf;
 
   config_pool(p, 64, 32, 64, FP_MAX_FRAGMENT_SIZE);
-  rf = fp_merge_adjacent_available(f, fe);
-  CU_ASSERT_EQUAL(rf, f);
+  fp_merge_adjacent_available(f, fe);
   CU_ASSERT_PTR_EQUAL(f[0].start, data);
   CU_ASSERT_EQUAL(f[0].length, 96);
   CU_ASSERT_PTR_EQUAL(f[1].start, f[0].start+f[0].length);
@@ -332,8 +342,7 @@ test_fp_merge_adjacent_available ()
   CU_ASSERT_EQUAL(f[2].length, (p->pool_end - f[2].start));
 
   config_pool(p, 64, 32, 64, FP_MAX_FRAGMENT_SIZE);
-  rf = fp_merge_adjacent_available(f+1, fe);
-  CU_ASSERT_EQUAL(rf, f+1);
+  fp_merge_adjacent_available(f+1, fe);
   CU_ASSERT_PTR_EQUAL(f[0].start, data);
   CU_ASSERT_EQUAL(f[0].length, 64);
   CU_ASSERT_PTR_EQUAL(f[1].start, f[0].start+f[0].length);
@@ -471,9 +480,51 @@ test_execute_resize ()
 		   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
 		   PO_VALIDATE,
 		   PO_END_COMMANDS);
+
+  /* Expand when following is available and can satisfy request */
+  fp_reset(pool);
+  execute_pool_ops(pool,
+		   PO_ALLOCATE, 32, 64,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, 192,
+		   PO_RESIZE, 0, 128,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, 128,
+		   PO_VALIDATE,
+		   PO_END_COMMANDS);
+
+  /* Expand when following is available but cannot satisfy request */
+  fp_reset(pool);
+  execute_pool_ops(pool,
+		   PO_ALLOCATE, 64, 64,
+		   PO_ALLOCATE, 64, 64,
+		   PO_ALLOCATE, 64, 64,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 3, 64,
+		   PO_RELEASE, 1,
+		   PO_VALIDATE,
+		   PO_RESIZE, 0, 192,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
+		   PO_VALIDATE,
+		   PO_END_COMMANDS);
+
+  /* Expand when following is active or inactive */
+  fp_reset(pool);
+  execute_pool_ops(pool,
+		   PO_ALLOCATE, 128, 128,
+		   PO_ALLOCATE, 128, 128,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, -128,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, 0,
+		   PO_RESIZE, 0, 192,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
+		   PO_RESIZE, 1, 192,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, -128,
+		   PO_VALIDATE,
+		   PO_END_COMMANDS);
 }
-
-
 
 int
 main (int argc,

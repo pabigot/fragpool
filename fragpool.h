@@ -118,16 +118,24 @@ uint8_t* fp_request (fp_pool_t pool,
 /** Attempt to resize a fragment in-place.
  *
  * This operation will release trailing bytes to the pool or attempt
- * to extend the fragment if the following fragment is available.  It
- * will not move the data.  The caller is responsible for checking
- * *fragment_endp to determine if the resize occurred.
+ * to extend the fragment if the following fragment is available.
+ *
+ * If the new size is smaller, the excess will be returned to the pool
+ * if possible.
+ *
+ * If the new size is larger and the following fragment is available,
+ * the fragment will be extended to be no longer than new_size.  It
+ * may be extended even if the requested new size cannot be satisfied.
+ * 
+ * The resize will not move any data.  The caller is responsible for
+ * checking *fragment_endp to determine the effect of the resize.
  * 
  * @param pool the pool from which bp was allocated
  * 
  * @param bp the start of an allocated block returned by fp_request,
  * fp_resize, or fp_reallocate.
  * 
- * @param new_size the new desired size for the pool
+ * @param new_size the new desired size for the pool.
  * 
  * @param fragment_endp where to store the end of the fragment
  *
