@@ -10,6 +10,8 @@ typedef int16_t fp_ssize_t;
  * value. */
 #define FP_MAX_FRAGMENT_SIZE INT16_MAX
 
+#define FP_EINVAL 1
+
 /** Bookkeeping for a fragment within the pool.
  *
  * The fragment state is allocated if its memory has been made
@@ -118,8 +120,33 @@ uint8_t* fp_reallocate (fp_pool_t pool,
 			fp_size_t new_size,
 			uint8_t** buffer_endp);
 
+/** Release a block of memory to the pool.
+ *
+ * @param pool the pool from which bp was allocated
+ * @param bp the start of an allocated block returned by fp_request,
+ * fp_extend, or fp_reallocate.
+ * @return zero if the block is released, or an error code if bp is
+ * invalid. */
+int fp_release (fp_pool_t pool,
+		uint8_t* bp);
+
 /** Verify the integrity of the pool.  Return 0 if the pool is valid,
  * or an internal error code if an integrity test fails. */
 int fp_validate (const fp_pool_t pool);
 
+
+fp_fragment_t
+fp_get_fragment (fp_pool_t p,
+		 uint8_t* bp);
+
+fp_fragment_t
+fp_find_best_fragment (fp_pool_t p,
+		       fp_size_t min_size,
+		       fp_size_t max_size);
+
+fp_fragment_t
+fp_merge_adjacent_available (fp_fragment_t f,
+			     fp_fragment_t fe);
+
 #endif /* FRAGPOOL_H_ */
+

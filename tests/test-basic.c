@@ -14,6 +14,7 @@ int clean_suite (void) { return 0; }
 
 static uint8_t data[POOL_SIZE];
 FP_DEFINE_POOL(pool, data, POOL_FRAGMENTS);
+fp_fragment_t fragment = pool_struct.fixed.fragment;
 
 void
 test_check_pool ()
@@ -24,13 +25,9 @@ test_check_pool ()
 }
 
 static void
-fp_show_pool (fp_pool_t p)
+fp_show_fragments (fp_fragment_t f,
+		   fp_fragment_t fe)
 {
-  fp_fragment_t f = p->fragment;
-  const fp_fragment_t fe = f + p->fragment_count;
-  printf("Pool %p with %u fragments and %u bytes from %p to %p:\n",
-	 (void*)p, p->fragment_count, (fp_size_t)(p->pool_end-p->pool_start),
-	 p->pool_start, p->pool_end);
   do {
     if (FRAGMENT_IS_ALLOCATED(f)) {
       printf(" %u allocated at %p\n", -f->length, f->start);
@@ -40,6 +37,17 @@ fp_show_pool (fp_pool_t p)
       printf(" unused fragment\n");
     }
   } while (++f < fe);
+}
+
+static void
+fp_show_pool (fp_pool_t p)
+{
+  fp_fragment_t f = p->fragment;
+  const fp_fragment_t fe = f + p->fragment_count;
+  printf("Pool %p with %u fragments and %u bytes from %p to %p:\n",
+	 (void*)p, p->fragment_count, (fp_size_t)(p->pool_end-p->pool_start),
+	 p->pool_start, p->pool_end);
+  fp_show_fragments(f, fe);
 }
 
 #define CU_ASSERT_POOL_IS_RESET(_p) do {				\
@@ -89,6 +97,53 @@ test_fp_request (void)
   fp_reset(p);
 }
 
+static void
+reset_fp_merge_adjacent_available (fp_pool_t p)
+{
+  fp_fragment_t f = p->fragment;
+  fp_reset(p);
+  f[0].start = data;
+  f[0].length = 4;
+  f[1].start = f[0].start + f[0].length;
+  f[1].length = 8;
+  f[2].start = f[1].start + f[1].length;
+  f[2].length = 6;
+  f[3].start = f[2].start + f[2].length;
+  f[3].length = -(p->pool_end - f[3].start);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+}
+
+void
+test_fp_merge_adjacent_available ()
+{
+  fp_pool_t p = pool;
+  fp_fragment_t f = p->fragment;
+  fp_fragment_t fe = p->fragment + p->fragment_count;
+  fp_fragment_t rf;
+
+  reset_fp_merge_adjacent_available(p);
+  fp_show_pool(p);
+  rf = fp_merge_adjacent_available(f, fe);
+  fp_show_pool(p);
+  CU_ASSERT_EQUAL(rf, f);
+  CU_ASSERT_PTR_EQUAL(f[0].start, data);
+  CU_ASSERT_EQUAL(f[0].length, 12);
+  CU_ASSERT_PTR_EQUAL(f[1].start, f[0].start+f[0].length);
+  CU_ASSERT_EQUAL(f[1].length, 6);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+
+  reset_fp_merge_adjacent_available(p);
+  fp_show_pool(p);
+  rf = fp_merge_adjacent_available(f+1, fe);
+  fp_show_pool(p);
+  CU_ASSERT_EQUAL(rf, f+1);
+  CU_ASSERT_PTR_EQUAL(f[0].start, data);
+  CU_ASSERT_EQUAL(f[0].length, 4);
+  CU_ASSERT_PTR_EQUAL(f[1].start, f[0].start+f[0].length);
+  CU_ASSERT_EQUAL(f[1].length, 14);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+}
+
 int
 main (int argc,
       char* argv[])
@@ -104,6 +159,7 @@ main (int argc,
     { "fp_reset", test_fp_reset },
     { "fp_validate", test_fp_validate },
     { "fp_request_params", test_fp_request_params },
+    { "fp_merge_adjacent_available", test_fp_merge_adjacent_available },
   };
   const int ntests = sizeof(tests) / sizeof(*tests);
   int i;

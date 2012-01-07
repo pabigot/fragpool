@@ -14,7 +14,6 @@ fp_reset (fp_pool_t p)
   memset(p->fragment+1, 0, (p->fragment_count-1)*sizeof(*p->fragment));
 }
 
-#if 0
 static fp_fragment_t
 get_fragment (fp_pool_t p,
 	      uint8_t* bp)
@@ -28,7 +27,6 @@ get_fragment (fp_pool_t p,
   } while (++f < fe);
   return NULL;
 }
-#endif
 
 static fp_fragment_t
 find_best_fragment (fp_pool_t p,
@@ -156,4 +154,63 @@ fp_request (fp_pool_t pool,
   *buffer_endp = bf->start + bf->length;
   bf->length = -bf->length;
   return bf->start;
+}
+
+static fp_fragment_t
+merge_adjacent_available (fp_fragment_t f,
+			  fp_fragment_t fe)
+{
+  fp_fragment_t nf = f+1;
+
+  f->length += nf->length;
+  while ((++nf < fe) && (! FRAGMENT_IS_INACTIVE(nf))) {
+    nf[-1] = nf[0];
+  }
+  nf[-1].length = 0;
+  return f;
+}
+
+int
+fp_release (fp_pool_t p,
+	    uint8_t* bp)
+{
+  fp_fragment_t f = get_fragment(p, bp);
+  fp_fragment_t nf;
+  const fp_fragment_t fe = p->fragment + p->fragment_count;
+  
+  if (NULL == f) {
+    return FP_EINVAL;
+  }
+  f->length = -f->length;
+  if ((p->fragment < f) && FRAGMENT_IS_AVAILABLE(f-1)) {
+    f = merge_adjacent_available(f-1, fe);
+  }
+  nf = f+1;
+  if ((nf < fe) && FRAGMENT_IS_AVAILABLE(nf)) {
+    (void)merge_adjacent_available(f, fe);
+  }
+  return 0;
+}
+
+fp_fragment_t
+fp_get_fragment (fp_pool_t p,
+		 uint8_t* bp)
+{
+  return get_fragment(p, bp);
+}
+
+
+fp_fragment_t
+fp_find_best_fragment (fp_pool_t p,
+		       fp_size_t min_size,
+		       fp_size_t max_size)
+{
+  return find_best_fragment(p, min_size, max_size);
+}
+
+fp_fragment_t
+fp_merge_adjacent_available (fp_fragment_t f,
+			     fp_fragment_t fe)
+{
+  return merge_adjacent_available (f, fe);
 }
