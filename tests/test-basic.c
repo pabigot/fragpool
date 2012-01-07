@@ -116,10 +116,11 @@ release_fragments (fp_pool_t p, ...)
 
 #define PO_ALLOCATE 'a'
 #define PO_RELEASE 'r'
+#define PO_RESIZE 'x'
 #define PO_CHECK_FRAGMENT_LENGTH 'C'
 #define PO_VALIDATE 'V'
 #define PO_CHECK_IS_RESET 'R'
-
+#define PO_END_COMMANDS 0
 static void
 execute_pool_ops (fp_pool_t p, ...)
 {
@@ -132,7 +133,7 @@ execute_pool_ops (fp_pool_t p, ...)
   printf("initial state:");
   show_short_pool(p);
   putchar('\n');
-  while ((cmd = va_arg(ap,int))) {
+  while (PO_END_COMMANDS != ((cmd = va_arg(ap,int)))) {
     switch (cmd) {
     case PO_ALLOCATE: {	 /* allocate: PO_ALLOCATE min_size max_size */
       int min_size = va_arg(ap, int);
@@ -175,6 +176,22 @@ execute_pool_ops (fp_pool_t p, ...)
     case PO_CHECK_IS_RESET: {			/* check reset: PO_CHECK_IS_RESET */
       printf("\tchecking pool is reset\n");
       CU_ASSERT_POOL_IS_RESET(p);
+      break;
+    }
+    case PO_RESIZE: {		/* resize fragment: PO_RESIZE fragment_index new_size */
+      int fi = va_arg(ap, int);
+      int len = va_arg(ap, int);
+      fp_fragment_t f = p->fragment + fi;
+      uint8_t* b;
+      uint8_t* be;
+
+      printf("\tresize fragment %d@%u to %u ... ", f->length, fi, len);
+      b = fp_resize(p, f->start, len, &be);
+      if (NULL != b) {
+	printf("got %u at %p\n", (int)(be-b), b);
+      } else {
+	printf("failed\n");
+      }
       break;
     }
     default:
@@ -413,8 +430,50 @@ test_execute_alloc ()
 		   PO_VALIDATE,
 		   PO_RELEASE, 0,
 		   PO_CHECK_IS_RESET,
-		   0);
+		   PO_END_COMMANDS);
 }
+
+void
+test_execute_resize ()
+{
+  /* Shrink when following is available */
+  fp_reset(pool);
+  execute_pool_ops(pool,
+		   PO_ALLOCATE, 32, 64,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+		   PO_RESIZE, 0, 48,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -48,
+		   PO_VALIDATE,
+		   PO_END_COMMANDS);
+
+  /* Shrink when following is inactive */
+  fp_reset(pool);
+  execute_pool_ops(pool,
+		   PO_ALLOCATE, POOL_SIZE, POOL_SIZE,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -POOL_SIZE,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, 0,
+		   PO_RESIZE, 0, 48,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -48,
+		   PO_VALIDATE,
+		   PO_END_COMMANDS);
+
+  /* Shrink when following is allocated */
+  fp_reset(pool);
+  execute_pool_ops(pool,
+		   PO_ALLOCATE, 64, 64,
+		   PO_ALLOCATE, 64, 64,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+		   PO_VALIDATE,
+		   PO_RESIZE, 0, 48,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -48,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, 16,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
+		   PO_VALIDATE,
+		   PO_END_COMMANDS);
+}
+
+
 
 int
 main (int argc,
@@ -437,6 +496,7 @@ main (int argc,
     { "fp_release_params", test_fp_release_params },
     { "fp_release", test_fp_release },
     { "execute_alloc", test_execute_alloc },
+    { "execute_resize", test_execute_resize },
   };
   const int ntests = sizeof(tests) / sizeof(*tests);
   int i;

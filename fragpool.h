@@ -94,39 +94,67 @@ void fp_reset (fp_pool_t pool);
  *
  * A block of memory of at least min_size octets is allocated from the
  * pool and returned to the caller.  The value pointed to by
- * buffer_endp is updated to reflect the first byte past the end of
+ * fragment_endp is updated to reflect the first byte past the end of
  * the allocated region.  The largest available fragment that does not
  * exceed max_size is returned.  If the requested maximum size is
  * larger than the selected fragment, and there are slots available,
  * the remainder is retained as an available fragment.
  * 
  * @param pool the pool from which memory is obtained
+ * 
  * @param min_size the minimum size acceptable fragment
+ * 
  * @param max_size the maximum size usable fragment
- * @param buffer_endp where to store the end of the pool
+ * 
+ * @param fragment_endp where to store the end of the fragment
+ * 
  * @return a pointer to the start of the returned region, or a null
  * pointer if the allocation cannot be satisfied.  */
 uint8_t* fp_request (fp_pool_t pool,
 		     fp_size_t min_size,
 		     fp_size_t max_size,
-		     uint8_t** buffer_endp);
+		     uint8_t** fragment_endp);
 
+/** Attempt to resize a fragment in-place.
+ *
+ * This operation will release trailing bytes to the pool or attempt
+ * to extend the fragment if the following fragment is available.  It
+ * will not move the data.  The caller is responsible for checking
+ * *fragment_endp to determine if the resize occurred.
+ * 
+ * @param pool the pool from which bp was allocated
+ * 
+ * @param bp the start of an allocated block returned by fp_request,
+ * fp_resize, or fp_reallocate.
+ * 
+ * @param new_size the new desired size for the pool
+ * 
+ * @param fragment_endp where to store the end of the fragment
+ *
+ * @return fp if the resize succeeded, or a null pointer if an invalid
+ * fragment or pool address was provided.  In either case, the
+ * new_size octets beginning at fp are unchanged.  *fragment_endp is
+ * updated to reflect the end of the fragment, whether the resize
+ * succeeded or failed.
+ */
 uint8_t* fp_resize (fp_pool_t pool,
-		    uint8_t* fp,
+		    uint8_t* bp,
 		    fp_size_t new_size,
-		    uint8_t** buffer_endp);
+		    uint8_t** fragment_endp);
 
 uint8_t* fp_reallocate (fp_pool_t pool,
 			uint8_t* fp,
 			fp_size_t keep_size,
 			fp_size_t new_size,
-			uint8_t** buffer_endp);
+			uint8_t** fragment_endp);
 
 /** Release a block of memory to the pool.
  *
  * @param pool the pool from which bp was allocated
+ * 
  * @param bp the start of an allocated block returned by fp_request,
- * fp_extend, or fp_reallocate.
+ * fp_resize, or fp_reallocate.
+ * 
  * @return zero if the block is released, or an error code if bp is
  * invalid. */
 int fp_release (fp_pool_t pool,

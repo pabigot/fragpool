@@ -135,17 +135,31 @@ release_suffix (fp_fragment_t f,
 		fp_fragment_t fe,
 		fp_size_t excess)
 {
-  fp_fragment_t nf = f;
-  while ((++nf < fe) && (!FRAGMENT_IS_INACTIVE(nf))) {
-    ;
+  fp_fragment_t nf = f+1;
+
+  if (nf >= fe) {
+    return;
   }
-  if (nf < fe) {
-    do {
-      nf[0] = nf[-1];
-    } while (--nf > f);
-    f[0].length += excess;
-    f[1].start = f[0].start - f[0].length;
-    f[1].length = excess;
+  if (FRAGMENT_IS_INACTIVE(nf)) {
+    nf->length = excess;
+    f->length += excess;
+    nf->start = f->start - f->length;
+  } else if (FRAGMENT_IS_AVAILABLE(nf)) {
+    nf->length += excess;
+    f->length += excess;
+    nf->start -= excess;
+  } else {
+    while ((++nf < fe) && (!FRAGMENT_IS_INACTIVE(nf))) {
+      ;
+    }
+    if (nf < fe) {
+      do {
+	nf[0] = nf[-1];
+      } while (--nf > f);
+      f[0].length += excess;
+      f[1].start = f[0].start - f[0].length;
+      f[1].length = excess;
+    }
   }
 }
 
@@ -211,6 +225,32 @@ fp_release (fp_pool_t p,
     (void)merge_adjacent_available(f, fe);
   }
   return 0;
+}
+
+uint8_t*
+fp_resize (fp_pool_t p,
+	   uint8_t* bp,
+	   fp_size_t new_size,
+	   uint8_t** fragment_endp)
+{
+  fp_fragment_t f = get_fragment(p, bp);
+  fp_fragment_t fe = p->fragment + p->fragment_count;
+  fp_fragment_t nf;
+  
+  if ((NULL == f) || (!FRAGMENT_IS_ALLOCATED(f))) {
+    return NULL;
+  }
+  nf = f+1;
+  if (nf < fe) {
+    fp_size_t cur_size = - f->length;
+    if (new_size < cur_size) {
+      release_suffix(f, p->fragment + p->fragment_count, cur_size - new_size);
+    } else if (new_size > cur_size) {
+      /* Extend to following fragment? */
+    }
+  }
+  *fragment_endp = f->start - f->length;
+  return f->start;
 }
 
 fp_fragment_t
