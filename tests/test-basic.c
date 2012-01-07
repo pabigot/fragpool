@@ -122,13 +122,14 @@ release_fragments (fp_pool_t p, ...)
 #define PO_CHECK_IS_RESET 'R'
 #define PO_END_COMMANDS 0
 static void
-execute_pool_ops (fp_pool_t p, ...)
+execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
 {
   va_list ap;
   int cmd;
 
-  va_start(ap, p);
-  printf("\nExecuting commands on pool %p with %u fragments and total size %u:\n",
+  va_start(ap, lineno);
+  printf("\n%s:%u Executing commands on pool %p with %u fragments and total size %u:\n",
+	 file, lineno,
 	 (void*)p, p->fragment_count, (unsigned int)(p->pool_end-p->pool_start));
   printf("initial state:");
   show_short_pool(p);
@@ -431,13 +432,79 @@ void
 test_execute_alloc ()
 {
   fp_reset(pool);
-  execute_pool_ops(pool,
+  execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_ALLOCATE, 16, 64,
 		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
 		   PO_CHECK_FRAGMENT_LENGTH, 1, 192,
 		   PO_CHECK_FRAGMENT_LENGTH, 2, 0,
 		   PO_VALIDATE,
 		   PO_RELEASE, 0,
+		   PO_CHECK_IS_RESET,
+		   PO_END_COMMANDS);
+
+  fp_reset(pool);
+  execute_pool_ops(pool, __FILE__, __LINE__,
+		   PO_ALLOCATE, 32, 32,
+		   PO_ALLOCATE, 32, 32,
+		   PO_ALLOCATE, 32, 32,
+		   PO_ALLOCATE, 32, 32,
+		   PO_ALLOCATE, 32, 32,
+		   PO_VALIDATE,
+		   PO_CHECK_FRAGMENT_LENGTH, 5, POOL_SIZE-5*32,
+		   PO_ALLOCATE, 32, 32,
+		   PO_CHECK_FRAGMENT_LENGTH, 5, -(POOL_SIZE-5*32),
+		   PO_END_COMMANDS);
+}
+
+void
+test_execute_release ()
+{
+  fp_reset(pool);
+  execute_pool_ops(pool, __FILE__, __LINE__,
+		   PO_ALLOCATE, 64, 64,
+		   PO_ALLOCATE, 64, 64,
+		   PO_ALLOCATE, 64, 64,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 3, 64,
+		   PO_VALIDATE,
+		   PO_RELEASE, 0,
+		   PO_RELEASE, 2,
+		   PO_VALIDATE,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, 64,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, 128,
+		   PO_VALIDATE,
+		   PO_RELEASE, 1,
+		   PO_CHECK_IS_RESET,
+		   PO_END_COMMANDS);
+
+  fp_reset(pool);
+  execute_pool_ops(pool, __FILE__, __LINE__,
+		   PO_ALLOCATE, 32, 32,
+		   PO_ALLOCATE, 64, 64,
+		   PO_ALLOCATE, 32, 32,
+		   PO_ALLOCATE, 64, 64,
+		   PO_ALLOCATE, 32, 32,
+		   PO_ALLOCATE, 32, 32,
+		   PO_VALIDATE,
+		   PO_CHECK_FRAGMENT_LENGTH, 5, -32,
+		   PO_RELEASE, 5,
+		   PO_CHECK_FRAGMENT_LENGTH, 5, 32,
+		   PO_RELEASE, 0,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, 32,
+		   PO_RELEASE, 4,
+		   PO_CHECK_FRAGMENT_LENGTH, 4, 64,
+		   PO_CHECK_FRAGMENT_LENGTH, 5, 0,
+		   PO_VALIDATE,
+		   PO_RELEASE, 2,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, 32,
+		   PO_RELEASE, 3,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, 160,
+		   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
+		   PO_CHECK_FRAGMENT_LENGTH, 4, 0,
+		   PO_RELEASE, 1,
 		   PO_CHECK_IS_RESET,
 		   PO_END_COMMANDS);
 }
@@ -447,7 +514,7 @@ test_execute_resize ()
 {
   /* Shrink when following is available */
   fp_reset(pool);
-  execute_pool_ops(pool,
+  execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_ALLOCATE, 32, 64,
 		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
 		   PO_RESIZE, 0, 48,
@@ -457,7 +524,7 @@ test_execute_resize ()
 
   /* Shrink when following is inactive */
   fp_reset(pool);
-  execute_pool_ops(pool,
+  execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_ALLOCATE, POOL_SIZE, POOL_SIZE,
 		   PO_CHECK_FRAGMENT_LENGTH, 0, -POOL_SIZE,
 		   PO_CHECK_FRAGMENT_LENGTH, 1, 0,
@@ -468,7 +535,7 @@ test_execute_resize ()
 
   /* Shrink when following is allocated */
   fp_reset(pool);
-  execute_pool_ops(pool,
+  execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_ALLOCATE, 64, 64,
 		   PO_ALLOCATE, 64, 64,
 		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
@@ -483,7 +550,7 @@ test_execute_resize ()
 
   /* Expand when following is available and can satisfy request */
   fp_reset(pool);
-  execute_pool_ops(pool,
+  execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_ALLOCATE, 32, 64,
 		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
 		   PO_CHECK_FRAGMENT_LENGTH, 1, 192,
@@ -495,7 +562,7 @@ test_execute_resize ()
 
   /* Expand when following is available but cannot satisfy request */
   fp_reset(pool);
-  execute_pool_ops(pool,
+  execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_ALLOCATE, 64, 64,
 		   PO_ALLOCATE, 64, 64,
 		   PO_ALLOCATE, 64, 64,
@@ -512,7 +579,7 @@ test_execute_resize ()
 
   /* Expand when following is active or inactive */
   fp_reset(pool);
-  execute_pool_ops(pool,
+  execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_ALLOCATE, 128, 128,
 		   PO_ALLOCATE, 128, 128,
 		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
@@ -547,6 +614,7 @@ main (int argc,
     { "fp_release_params", test_fp_release_params },
     { "fp_release", test_fp_release },
     { "execute_alloc", test_execute_alloc },
+    { "execute_release", test_execute_release },
     { "execute_resize", test_execute_resize },
   };
   const int ntests = sizeof(tests) / sizeof(*tests);
