@@ -30,6 +30,10 @@ get_fragment (fp_pool_t p,
   return NULL;
 }
 
+/** Locate the smallest available fragment that is at least max_size
+ * octets long.  If no fragment matches, return the largest available
+ * fragment that is at least min_size octets long.  Return a null
+ * pointer if no acceptable fragment exists in the pool. */
 static fp_fragment_t
 find_best_fragment (fp_pool_t p,
 		    fp_size_t min_size,
@@ -163,6 +167,24 @@ release_suffix (fp_fragment_t f,
   }
 }
 
+static uint8_t*
+complete_allocation (fp_pool_t p,
+		     fp_fragment_t f,
+		     fp_size_t max_size,
+		     uint8_t** fragment_endp)
+{
+  const fp_fragment_t fe = p->fragment + p->fragment_count;
+  fp_size_t flen = f->length;
+
+  f->length = -f->length;
+  if (((f+1) < fe) && (flen > max_size)) {
+    release_suffix(f, fe, flen - max_size);
+  }
+  *fragment_endp = f->start - f->length;
+  return f->start;
+}
+		     
+
 uint8_t*
 fp_request (fp_pool_t pool,
 	    fp_size_t min_size,
@@ -170,8 +192,6 @@ fp_request (fp_pool_t pool,
 	    uint8_t** fragment_endp)
 {
   fp_fragment_t f;
-  fp_size_t flen;
-  const fp_fragment_t fe = pool->fragment + pool->fragment_count;
 
   /* Validate arguments */
   if ((0 >= min_size) || (min_size > max_size) || (NULL == fragment_endp)) {
@@ -181,14 +201,7 @@ fp_request (fp_pool_t pool,
   if (NULL == f) {
     return NULL;
   }
-  /* Mark the fragment allocated, then try to release any excess */
-  flen = f->length;
-  f->length = -f->length;
-  if (((f+1) < fe) && (flen > max_size)) {
-    release_suffix(f, fe, flen - max_size);
-  }
-  *fragment_endp = f->start - f->length;
-  return f->start;
+  return complete_allocation(pool, f, max_size, fragment_endp);
 }
 
 /** Extend the fragment by the space in the following fragment.
