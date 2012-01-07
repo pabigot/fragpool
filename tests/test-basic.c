@@ -98,7 +98,7 @@ test_fp_request (void)
 }
 
 static void
-reset_fp_merge_adjacent_available (fp_pool_t p)
+config_486 (fp_pool_t p)
 {
   fp_fragment_t f = p->fragment;
   fp_reset(p);
@@ -110,7 +110,7 @@ reset_fp_merge_adjacent_available (fp_pool_t p)
   f[2].length = 6;
   f[3].start = f[2].start + f[2].length;
   f[3].length = -(p->pool_end - f[3].start);
-  CU_ASSERT_EQUAL(0, fp_validate(p));
+  CU_ASSERT_NOT_EQUAL(0, fp_validate(p));
 }
 
 void
@@ -121,7 +121,7 @@ test_fp_merge_adjacent_available ()
   fp_fragment_t fe = p->fragment + p->fragment_count;
   fp_fragment_t rf;
 
-  reset_fp_merge_adjacent_available(p);
+  config_486(p);
   fp_show_pool(p);
   rf = fp_merge_adjacent_available(f, fe);
   fp_show_pool(p);
@@ -130,9 +130,9 @@ test_fp_merge_adjacent_available ()
   CU_ASSERT_EQUAL(f[0].length, 12);
   CU_ASSERT_PTR_EQUAL(f[1].start, f[0].start+f[0].length);
   CU_ASSERT_EQUAL(f[1].length, 6);
-  CU_ASSERT_EQUAL(0, fp_validate(p));
+  CU_ASSERT_EQUAL(f[2].length, -(p->pool_end - f[2].start));
 
-  reset_fp_merge_adjacent_available(p);
+  config_486(p);
   fp_show_pool(p);
   rf = fp_merge_adjacent_available(f+1, fe);
   fp_show_pool(p);
@@ -141,6 +141,48 @@ test_fp_merge_adjacent_available ()
   CU_ASSERT_EQUAL(f[0].length, 4);
   CU_ASSERT_PTR_EQUAL(f[1].start, f[0].start+f[0].length);
   CU_ASSERT_EQUAL(f[1].length, 14);
+  CU_ASSERT_EQUAL(f[2].length, -(p->pool_end - f[2].start));
+}
+
+void
+test_fp_get_fragment ()
+{
+  fp_pool_t p = pool;
+  fp_fragment_t f = p->fragment;
+
+  config_486(p);
+  CU_ASSERT_PTR_EQUAL(f, fp_get_fragment(p, f->start));
+  CU_ASSERT_PTR_EQUAL(f+1, fp_get_fragment(p, f[1].start));
+  CU_ASSERT_PTR_EQUAL(f+2, fp_get_fragment(p, f[2].start));
+  CU_ASSERT_PTR_NULL(fp_get_fragment(p, f->start+1));
+}
+  
+void
+test_fp_release_params ()
+{
+  fp_pool_t p = pool;
+  fp_fragment_t f = p->fragment;
+
+  config_486(p);
+  fp_show_pool(p);
+  CU_ASSERT_EQUAL(FP_EINVAL, fp_release(p, NULL));
+  CU_ASSERT_EQUAL(FP_EINVAL, fp_release(p, f[0].start));
+}
+
+void
+test_fp_release ()
+{
+  fp_pool_t p = pool;
+  fp_fragment_t f = p->fragment;
+  int rv;
+
+  config_486(p);
+  f[1].length = -f[1].length;
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  fp_show_pool(p);
+  rv = fp_release(p, f[1].start);
+  fp_show_pool(p);
+  CU_ASSERT_EQUAL(0, rv);
   CU_ASSERT_EQUAL(0, fp_validate(p));
 }
 
@@ -160,6 +202,9 @@ main (int argc,
     { "fp_validate", test_fp_validate },
     { "fp_request_params", test_fp_request_params },
     { "fp_merge_adjacent_available", test_fp_merge_adjacent_available },
+    { "fp_get_fragment", test_fp_get_fragment },
+    { "fp_release_params", test_fp_release_params },
+    { "fp_release", test_fp_release },
   };
   const int ntests = sizeof(tests) / sizeof(*tests);
   int i;

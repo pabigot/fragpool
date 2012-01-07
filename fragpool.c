@@ -14,6 +14,8 @@ fp_reset (fp_pool_t p)
   memset(p->fragment+1, 0, (p->fragment_count-1)*sizeof(*p->fragment));
 }
 
+/** Find the fragment that starts at bp.  bp must be a non-null
+ * pointer within the pool. */
 static fp_fragment_t
 get_fragment (fp_pool_t p,
 	      uint8_t* bp)
@@ -96,8 +98,8 @@ fp_validate (fp_pool_t p)
       if (FRAGMENT_IS_AVAILABLE(lf) && FRAGMENT_IS_AVAILABLE(f)) {
 	return FPVal_FragmentUnmerged;
       }
-      lf = f;
     }
+    lf = f;
     if (FRAGMENT_IS_AVAILABLE(f)) {
       size += f->length;
       bp += f->length;
@@ -178,7 +180,7 @@ fp_release (fp_pool_t p,
   fp_fragment_t nf;
   const fp_fragment_t fe = p->fragment + p->fragment_count;
   
-  if (NULL == f) {
+  if ((NULL == f) || (! FRAGMENT_IS_ALLOCATED(f))) {
     return FP_EINVAL;
   }
   f->length = -f->length;
