@@ -109,7 +109,7 @@ uint8_t* fp_request (fp_pool_t pool,
 		     fp_size_t max_size,
 		     uint8_t** buffer_endp);
 
-uint8_t* fp_extend (fp_pool_t pool,
+uint8_t* fp_resize (fp_pool_t pool,
 		    uint8_t* fp,
 		    fp_size_t new_size,
 		    uint8_t** buffer_endp);
