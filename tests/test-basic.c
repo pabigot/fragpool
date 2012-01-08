@@ -575,6 +575,40 @@ test_execute_alloc ()
 		   PO_ALLOCATE, 32, 32,
 		   PO_CHECK_FRAGMENT_LENGTH, 5, -(POOL_SIZE-5*32),
 		   PO_END_COMMANDS);
+
+  /* Verify preference for larger fragment if acceptable one doesn't
+   * reach maximum requested */
+  execute_pool_ops(pool, __FILE__, __LINE__,
+		   PO_RESET,
+		   PO_ALLOCATE, 30, 30,
+		   PO_ALLOCATE, 2, 2,
+		   PO_ALLOCATE, 62, 62,
+		   PO_FILL_FRAGMENT, 2, 'x', 0, -1,
+		   PO_ALLOCATE, 2, 2,
+		   PO_RELEASE, 0,
+		   PO_RELEASE, 2,
+		   PO_ALLOCATE, 16, 48,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -48,
+		   PO_CHECK_FRAGMENT_LENGTH, 3, 14,
+		   PO_CHECK_FRAGMENT_LENGTH, 4, -2,
+		   PO_END_COMMANDS);
+
+  /* Verify preference for smaller fragment if still meets maximum
+   * requested */
+  execute_pool_ops(pool, __FILE__, __LINE__,
+		   PO_RESET,
+		   PO_ALLOCATE, 62, 62,
+		   PO_ALLOCATE, 2, 2,
+		   PO_ALLOCATE, 30, 30,
+		   PO_FILL_FRAGMENT, 2, 'x', 0, -1,
+		   PO_ALLOCATE, 2, 2,
+		   PO_RELEASE, 0,
+		   PO_RELEASE, 2,
+		   PO_ALLOCATE, 16, 24,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -24,
+		   PO_CHECK_FRAGMENT_LENGTH, 3, 6,
+		   PO_CHECK_FRAGMENT_LENGTH, 4, -2,
+		   PO_END_COMMANDS);
 }
 
 void

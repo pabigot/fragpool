@@ -30,6 +30,16 @@ get_fragment (fp_pool_t p,
   return NULL;
 }
 
+/* Prefer a new fragment based on size if it's longer than the current
+ * candidate and the candidate isn't at least the maximum desired
+ * size, or it's shorter than the current candidate while still being
+ * at least the maximum desired size. */
+#define PREFER_NEW_SIZE(_new_len, _cur_len, _max_size)	\
+  ((((_new_len) > (_cur_len))				\
+    && ((_cur_len) < (_max_size)))			\
+   || (((_new_len) < (_cur_len))			\
+       && ((_new_len) >= (_max_size))))
+       
 /** Locate the smallest available fragment that is at least max_size
  * octets long.  If no fragment matches, return the largest available
  * fragment that is at least min_size octets long.  Return a null
@@ -44,14 +54,12 @@ find_best_fragment (fp_pool_t p,
   fp_fragment_t bf = NULL;
 
   do {
-    /* Candidate must be available with at least the minimum size */
+    /* Candidate must be available (positive length) with at least the
+       minimum size */
     if (min_size <= f->length) {
-      /* Replace if we have no best fragment, or if the new fragment
-       * is longer than the current candidate and the candidate isn't
-       * at least the maximum desired size */
-      if ((NULL == bf)
-	  || ((f->length > bf->length)
-	      && (bf->length < max_size))) {
+      /* Replace if we have no best fragment, or we like the new one
+       * better. */
+      if ((NULL == bf) || PREFER_NEW_SIZE(f->length, bf->length, max_size)) {
 	bf = f;
       }
     }
@@ -325,6 +333,8 @@ fp_reallocate (fp_pool_t p,
   bflen = 0;
   {
     fp_fragment_t xf = p->fragment;
+    /* Same logic as find_best_fragment, but treat the sequence around
+     * the current fragment as a single fragment */
     do {
       fp_ssize_t flen = xf->length;
       
@@ -332,8 +342,7 @@ fp_reallocate (fp_pool_t p,
 	flen = frlen;
       }
       if (min_size <= flen) {
-	if ((NULL == bf)
-	    || ((flen > bflen) && (bflen < max_size))) {
+	if ((NULL == bf) || PREFER_NEW_SIZE(flen, bflen, max_size)) {
 	  bf = xf;
 	  bflen = flen;
 	}
