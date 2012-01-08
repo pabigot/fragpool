@@ -26,6 +26,7 @@ static union {
   .generic = {
     .pool_start = pool_data,
     .pool_end = pool_data + sizeof(pool_data),
+    .pool_alignment = 1,
     .fragment_count = POOL_FRAGMENTS
   }
 };

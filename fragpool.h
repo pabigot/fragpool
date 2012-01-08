@@ -28,8 +28,10 @@ typedef int16_t fp_ssize_t;
  * You don't get to inspect or mutate the fields of this structure, so
  * any descriptive comments are irrelevant to you. */
 typedef struct fp_fragment_t {
-  /** Address within the corresponding pool's memory space. */
+  /** Address within the corresponding pool's memory space.  This
+   * pointer must meet the pool's fragment alignment restrictions. */
   uint8_t* start;
+
   /** Length of the pool.  A negative value indicates an allocated
    * fragment; a positive value indicates an available fragment; a
    * zero value indicates an inactive fragment. */
@@ -71,8 +73,14 @@ fp_pool_t const pool = &pool_union.generic;
    * the pool is (pool_end-pool_start). */				\
   uint8_t* pool_end;							\
 									\
+  /** The alignment of the fragments, in bytes.  E.g., a value of 2	\
+   * ensures addresses are 16-bit aligned; a value of 4 ensures		\
+   * addresses are 32-bit aligned.  Value must be a nonzero power of	\
+   * two. */								\
+  uint8_t pool_alignment;						\
+									\
   /** The number of fragments supported by the pool */			\
-  fp_size_t fragment_count
+  uint8_t fragment_count
 
 /** Bookkeeping for a fragment pool.
  * 

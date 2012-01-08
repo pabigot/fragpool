@@ -171,11 +171,47 @@ merge_adjacent_available (fp_fragment_t f,
   nf[-1].length = 0;
 }
 
+static inline
+uint8_t* align_pointer_up (fp_pool_t p,
+			   uint8_t* b)
+{
+  uintptr_t bi = (uintptr_t)b;
+  bi = (bi + p->pool_alignment - 1) & ~(uintptr_t)(p->pool_alignment - 1);
+  return (uint8_t*)bi;
+}
+
+static inline
+uint8_t* align_pointer_down (fp_pool_t p,
+			     uint8_t* b)
+{
+  uintptr_t bi = (uintptr_t)b;
+  bi &= ~(uintptr_t)(p->pool_alignment - 1);
+  return (uint8_t*)bi;
+}
+
+static inline
+fp_ssize_t align_size_up (fp_pool_t p,
+			  fp_ssize_t s)
+{
+  fp_size_t us = abs(s);
+  us = (us + p->pool_alignment - 1) & ~(fp_size_t)(p->pool_alignment - 1);
+  return (0 > s) ? -us : us;
+}
+
+static inline
+fp_ssize_t align_size_down (fp_pool_t p,
+			    fp_ssize_t s)
+{
+  fp_size_t us = abs(s);
+  us &= ~(fp_size_t)(p->pool_alignment - 1);
+  return (0 > s) ? -us : us;
+}
+
 void
 fp_reset (fp_pool_t p)
 {
-  p->fragment[0].start = p->pool_start;
-  p->fragment[0].length = p->pool_end - p->pool_start;
+  p->fragment[0].start = align_pointer_up(p, p->pool_start);
+  p->fragment[0].length = align_pointer_down(p, p->pool_end) - p->fragment[0].start;
   memset(p->fragment+1, 0, (p->fragment_count-1)*sizeof(*p->fragment));
 }
 
@@ -366,8 +402,10 @@ fp_reallocate (fp_pool_t p,
 enum {
   FPVal_OK,
   FPVal_PoolBufferInvalid,
+  FPVal_PoolAlignmentInvalid,
   FPVal_FragmentCountInvalid,
   FPVal_FragmentWrongStart,
+  FPVal_FragmentLengthUnaligned,
   FPVal_FragmentUnmerged,
   FPVal_FragmentUsedPastEnd,
   FPVal_FragmentPoolLengthInconsistent,
@@ -377,18 +415,25 @@ int
 fp_validate (fp_pool_t p)
 {
   int size = 0;
-  uint8_t* bp;
+  uint8_t* b;
   fp_fragment_t f = p->fragment;
   const fp_fragment_t fe = f + p->fragment_count;
+  uint8_t* aps;
+  uint8_t* ape;
   fp_fragment_t lf;
 
   if (p->pool_start >= p->pool_end) {
     return FPVal_PoolBufferInvalid;
   }
+  if ((0 == p->pool_alignment) || (0 != (p->pool_alignment & (p->pool_alignment-1)))) {
+    return FPVal_PoolAlignmentInvalid;
+  }
   if (0 >= p->fragment_count) {
     return FPVal_FragmentCountInvalid;
   }
-  bp = p->pool_start;
+  aps = align_pointer_up(p, p->pool_start);
+  ape = align_pointer_down(p, p->pool_end);
+  b = aps;
   lf = NULL;
   do {
     /* Unused fragments have zero length and must be contiguous at
@@ -397,8 +442,13 @@ fp_validate (fp_pool_t p)
       break;
     }
     /* Fragment must start where last one left off */
-    if (f->start != bp) {
+    if (f->start != b) {
       return FPVal_FragmentWrongStart;
+    }
+    /* Fragment length must satisfy alignment */
+    if ((f->length != align_size_up(p, f->length))
+	|| (f->length != align_size_down(p, f->length))) {
+      return FPVal_FragmentLengthUnaligned;
     }
     if (NULL != lf) {
       /* Adjacent available fragments should have been merged. */
@@ -409,10 +459,10 @@ fp_validate (fp_pool_t p)
     lf = f;
     if (FRAGMENT_IS_AVAILABLE(f)) {
       size += f->length;
-      bp += f->length;
+      b += f->length;
     } else {
       size -= f->length;
-      bp -= f->length;
+      b -= f->length;
     }
   } while (++f < fe);
   /* Trailing (unused) fragments should have zero length */
@@ -422,7 +472,7 @@ fp_validate (fp_pool_t p)
     }
     ++f;
   }
-  if (size != (p->pool_end - p->pool_start)) {
+  if (ape != b) {
     return FPVal_FragmentPoolLengthInconsistent;
   }
   return FPVal_OK;
