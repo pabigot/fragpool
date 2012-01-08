@@ -834,7 +834,10 @@ test_execute_reallocate ()
 		   PO_ALLOCATE, 64, 64,
 		   PO_ALLOCATE, 64, 64,
 		   PO_ALLOCATE, 64, 64,
+		   PO_ALLOCATE, 32, 32,
+		   PO_ALLOCATE, 16, 16,
 		   PO_RELEASE, 1,
+		   PO_RELEASE, 3,
 		   PO_DISPLAY_POOL,
 		   PO_END_COMMANDS);
   b = fp_reallocate(pool, pool->fragment[2].start, 32, 160, &be);
@@ -848,9 +851,11 @@ test_execute_reallocate ()
 		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, 32,
 		   PO_CHECK_FRAGMENT_CONTENT, 1, '1', 32, 32,
 		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 64, 64,
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '?', 128, 32,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, 32,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
+		   PO_CHECK_FRAGMENT_CONTENT, 1, '3', 128, 32,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -16,
+		   PO_CHECK_FRAGMENT_CONTENT, 2, '4', 0, -1,
+		   PO_CHECK_FRAGMENT_LENGTH, 3, 16,
+		   PO_CHECK_FRAGMENT_LENGTH, 4, 0,
 		   PO_VALIDATE,
 		   PO_END_COMMANDS);
 }
