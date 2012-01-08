@@ -120,10 +120,14 @@ void fp_reset (fp_pool_t pool);
  * 
  * @param pool the pool from which memory is obtained
  * 
- * @param min_size the minimum size acceptable fragment
+ * @param min_size the minimum size acceptable fragment, in bytes.
+ * This is increased if necessary to satisfy the pool alignment
+ * requirements.
  * 
- * @param max_size the maximum size usable fragment.  Use
- * FP_MAX_FRAGMENT_SIZE to get the largest available fragment.
+ * @param max_size the maximum size usable fragment, in bytes.  This
+ * is increased if necessary to satisfy the pool alignment
+ * requirements.  Use FP_MAX_FRAGMENT_SIZE to get the largest
+ * available fragment.
  * 
  * @param fragment_endp where to store the end of the fragment
  * 
@@ -154,7 +158,10 @@ uint8_t* fp_request (fp_pool_t pool,
  * @param bp the start of an allocated block returned by fp_request,
  * fp_resize, or fp_reallocate.
  * 
- * @param new_size the new desired size for the fragment.
+ * @param new_size the new desired size for the fragment, in bytes.
+ * This is increased if necessary to satisfy the pool alignment
+ * requirements.  Use FP_MAX_FRAGMENT_SIZE to get the largest
+ * available fragment.
  * 
  * @param fragment_endp where to store the end of the fragment
  *
@@ -192,7 +199,10 @@ uint8_t* fp_resize (fp_pool_t pool,
  * new fragment begins at a different location.  The current fragment
  * may be smaller than this size.
  * 
- * @param new_size the new desired size for the fragment.
+ * @param new_size the new desired size for the fragment, in bytes.
+ * This is increased if necessary to satisfy the pool alignment
+ * requirements.  Use FP_MAX_FRAGMENT_SIZE to get the largest
+ * available fragment.
  * 
  * @param fragment_endp where to store the end of the fragment
  *

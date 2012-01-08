@@ -959,8 +959,21 @@ test_pool_alignment ()
   b = fp_request(p, 3, 9, &be);
   CU_ASSERT_EQUAL(b, f->start);
   CU_ASSERT_EQUAL(be, f->start - f->length);
-  show_pool(p);
+  CU_ASSERT_EQUAL(-10, f->length);
   CU_ASSERT_EQUAL(0, fp_validate(p));
+  b = fp_resize(p, b, 15, &be);
+  CU_ASSERT_EQUAL(b, f->start);
+  CU_ASSERT_EQUAL(be, f->start - f->length);
+  CU_ASSERT_EQUAL(-16, f->length);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+
+  b = fp_resize(p, b, FP_MAX_FRAGMENT_SIZE, &be);
+  CU_ASSERT_EQUAL(b, f->start);
+  CU_ASSERT_EQUAL(be, f->start - f->length);
+  CU_ASSERT_EQUAL(-254, f->length);
+  CU_ASSERT_EQUAL(0, f[1].length);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+
 }
 
 int
@@ -974,7 +987,6 @@ main (int argc,
     void (*fn) (void);
   } test_def;
   const test_def tests[] = {
-#if 0
     { "check pool", test_check_pool },
     { "fp_reset", test_fp_reset },
     { "fp_validate", test_fp_validate },
@@ -989,7 +1001,6 @@ main (int argc,
     { "execute_resize", test_execute_resize },
     { "execute_display", test_execute_display },
     { "execute_reallocate", test_execute_reallocate },
-#endif
     { "pool_alignment", test_pool_alignment },
   };
   const int ntests = sizeof(tests) / sizeof(*tests);
