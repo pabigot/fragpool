@@ -837,7 +837,7 @@ test_execute_reallocate ()
 		   PO_RELEASE, 1,
 		   PO_DISPLAY_POOL,
 		   PO_END_COMMANDS);
-  b = fp_reallocate(pool, pool->fragment[2].start, 96, 160, &be);
+  b = fp_reallocate(pool, pool->fragment[2].start, 32, 160, &be);
   CU_ASSERT_PTR_EQUAL(b, pool->fragment[1].start);
   CU_ASSERT_EQUAL(160, (int)(be-b));
   execute_pool_ops(pool, __FILE__, __LINE__,
@@ -845,7 +845,8 @@ test_execute_reallocate ()
 		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
 		   PO_CHECK_FRAGMENT_CONTENT, 0, '0', 0, -1,
 		   PO_CHECK_FRAGMENT_LENGTH, 1, -160,
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, 64,
+		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, 32,
+		   PO_CHECK_FRAGMENT_CONTENT, 1, '1', 32, 32,
 		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 64, 64,
 		   PO_CHECK_FRAGMENT_CONTENT, 1, '?', 128, 32,
 		   PO_CHECK_FRAGMENT_LENGTH, 2, 32,
