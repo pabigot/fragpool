@@ -374,7 +374,7 @@ fp_reallocate (fp_pool_t p,
       new_len = max_size;
     }
     frs->length = -new_len;
-    *fragment_endp = f->start;
+    *fragment_endp = frs->start + new_len;
     if (ffrs_len == new_len) {
       while ((++f < fe) && (! FRAGMENT_IS_INACTIVE(f))) {
 	f[-1] = f[0];
