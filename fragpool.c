@@ -6,14 +6,6 @@
 #define FRAGMENT_IS_AVAILABLE(_f) (0 < (_f)->length)
 #define FRAGMENT_IS_INACTIVE(_f) (0 == (_f)->length)
 
-void
-fp_reset (fp_pool_t p)
-{
-  p->fragment[0].start = p->pool_start;
-  p->fragment[0].length = p->pool_end - p->pool_start;
-  memset(p->fragment+1, 0, (p->fragment_count-1)*sizeof(*p->fragment));
-}
-
 /** Find the fragment that starts at bp.  bp must be a non-null
  * pointer within the pool. */
 static fp_fragment_t
@@ -40,10 +32,24 @@ get_fragment (fp_pool_t p,
    || (((_new_len) < (_cur_len))			\
        && ((_new_len) >= (_max_size))))
        
-/** Locate the smallest available fragment that is at least max_size
- * octets long.  If no fragment matches, return the largest available
- * fragment that is at least min_size octets long.  Return a null
- * pointer if no acceptable fragment exists in the pool. */
+/** Locate the best available fragment to use for the given allocation.
+ *
+ * Satisfactory fragments must be available and have at least min_size octets.
+ *
+ * The "best" of the satisfactory fragments is selected using the
+ * PREFER_NEW_SIZE macro.  The goal is to come as close to the
+ * requested maximum as possible with preference to being more than is
+ * necessary.
+ *
+ * @param pool the pool from which memory is obtained
+ * 
+ * @param min_size the minimum size acceptable fragment
+ * 
+ * @param max_size the maximum size usable fragment
+ *
+ * @return the pointer to the best fragment, or a null pointer if no
+ * satisfactory fragments are available.
+ */
 static fp_fragment_t
 find_best_fragment (fp_pool_t p,
 		    fp_size_t min_size,
@@ -66,71 +72,6 @@ find_best_fragment (fp_pool_t p,
   } while (++f < fe);
 
   return bf;
-}
-
-enum {
-  FPVal_OK,
-  FPVal_PoolBufferInvalid,
-  FPVal_FragmentCountInvalid,
-  FPVal_FragmentWrongStart,
-  FPVal_FragmentUnmerged,
-  FPVal_FragmentUsedPastEnd,
-  FPVal_FragmentPoolLengthInconsistent,
-};
-
-int
-fp_validate (fp_pool_t p)
-{
-  int size = 0;
-  uint8_t* bp;
-  fp_fragment_t f = p->fragment;
-  const fp_fragment_t fe = f + p->fragment_count;
-  fp_fragment_t lf;
-
-  if (p->pool_start >= p->pool_end) {
-    return FPVal_PoolBufferInvalid;
-  }
-  if (0 >= p->fragment_count) {
-    return FPVal_FragmentCountInvalid;
-  }
-  bp = p->pool_start;
-  lf = NULL;
-  do {
-    /* Unused fragments have zero length and must be contiguous at
-     * end */
-    if (FRAGMENT_IS_INACTIVE(f)) {
-      break;
-    }
-    /* Fragment must start where last one left off */
-    if (f->start != bp) {
-      return FPVal_FragmentWrongStart;
-    }
-    if (NULL != lf) {
-      /* Adjacent available fragments should have been merged. */
-      if (FRAGMENT_IS_AVAILABLE(lf) && FRAGMENT_IS_AVAILABLE(f)) {
-	return FPVal_FragmentUnmerged;
-      }
-    }
-    lf = f;
-    if (FRAGMENT_IS_AVAILABLE(f)) {
-      size += f->length;
-      bp += f->length;
-    } else {
-      size -= f->length;
-      bp -= f->length;
-    }
-  } while (++f < fe);
-  /* Trailing (unused) fragments should have zero length */
-  while (f < fe) {
-    if (! FRAGMENT_IS_INACTIVE(f)) {
-      return FPVal_FragmentUsedPastEnd;
-    }
-    ++f;
-  }
-  if (size != (p->pool_end - p->pool_start)) {
-    return FPVal_FragmentPoolLengthInconsistent;
-  }
-  return FPVal_OK;
 }
 
 /** If a fragment slot is available, trim excess octets off the tail
@@ -175,6 +116,19 @@ release_suffix (fp_fragment_t f,
   }
 }
 
+/** Allocate the fragment.  If the fragment length is more than is
+ * needed, attempt to release the suffix for separate allocation.
+ *
+ * @param p the pool being manipulated
+ * 
+ * @param f an available fragment, to be switched to allocated mode
+ *
+ * @param max_size the maximum size usable fragment
+ * 
+ * @param fragment_endp where to store the end of the fragment
+ * 
+ * @return a pointer to the start of the returned region, or a null
+ * pointer if the allocation cannot be satisfied.  */
 static uint8_t*
 complete_allocation (fp_pool_t p,
 		     fp_fragment_t f,
@@ -192,27 +146,8 @@ complete_allocation (fp_pool_t p,
   return f->start;
 }
 		     
-
-uint8_t*
-fp_request (fp_pool_t pool,
-	    fp_size_t min_size,
-	    fp_size_t max_size,
-	    uint8_t** fragment_endp)
-{
-  fp_fragment_t f;
-
-  /* Validate arguments */
-  if ((0 >= min_size) || (min_size > max_size) || (NULL == fragment_endp)) {
-    return NULL;
-  }
-  f = find_best_fragment(pool, min_size, max_size);
-  if (NULL == f) {
-    return NULL;
-  }
-  return complete_allocation(pool, f, max_size, fragment_endp);
-}
-
-/** Extend the fragment by the space in the following fragment.
+/** Extend the space of the provided fragment (allocated or available)
+ * by the following fragment, which is then eliminated.
  *
  * @param f is a fragment (either allocated or available), and the
  * next fragment is available.
@@ -234,6 +169,33 @@ merge_adjacent_available (fp_fragment_t f,
     nf[-1] = nf[0];
   }
   nf[-1].length = 0;
+}
+
+void
+fp_reset (fp_pool_t p)
+{
+  p->fragment[0].start = p->pool_start;
+  p->fragment[0].length = p->pool_end - p->pool_start;
+  memset(p->fragment+1, 0, (p->fragment_count-1)*sizeof(*p->fragment));
+}
+
+uint8_t*
+fp_request (fp_pool_t pool,
+	    fp_size_t min_size,
+	    fp_size_t max_size,
+	    uint8_t** fragment_endp)
+{
+  fp_fragment_t f;
+
+  /* Validate arguments */
+  if ((0 >= min_size) || (min_size > max_size) || (NULL == fragment_endp)) {
+    return NULL;
+  }
+  f = find_best_fragment(pool, min_size, max_size);
+  if (NULL == f) {
+    return NULL;
+  }
+  return complete_allocation(pool, f, max_size, fragment_endp);
 }
 
 int
@@ -399,6 +361,71 @@ fp_reallocate (fp_pool_t p,
   memmove(bp, f->start, copy_len);
   fp_release(p, f->start);
   return bp;
+}
+
+enum {
+  FPVal_OK,
+  FPVal_PoolBufferInvalid,
+  FPVal_FragmentCountInvalid,
+  FPVal_FragmentWrongStart,
+  FPVal_FragmentUnmerged,
+  FPVal_FragmentUsedPastEnd,
+  FPVal_FragmentPoolLengthInconsistent,
+};
+
+int
+fp_validate (fp_pool_t p)
+{
+  int size = 0;
+  uint8_t* bp;
+  fp_fragment_t f = p->fragment;
+  const fp_fragment_t fe = f + p->fragment_count;
+  fp_fragment_t lf;
+
+  if (p->pool_start >= p->pool_end) {
+    return FPVal_PoolBufferInvalid;
+  }
+  if (0 >= p->fragment_count) {
+    return FPVal_FragmentCountInvalid;
+  }
+  bp = p->pool_start;
+  lf = NULL;
+  do {
+    /* Unused fragments have zero length and must be contiguous at
+     * end */
+    if (FRAGMENT_IS_INACTIVE(f)) {
+      break;
+    }
+    /* Fragment must start where last one left off */
+    if (f->start != bp) {
+      return FPVal_FragmentWrongStart;
+    }
+    if (NULL != lf) {
+      /* Adjacent available fragments should have been merged. */
+      if (FRAGMENT_IS_AVAILABLE(lf) && FRAGMENT_IS_AVAILABLE(f)) {
+	return FPVal_FragmentUnmerged;
+      }
+    }
+    lf = f;
+    if (FRAGMENT_IS_AVAILABLE(f)) {
+      size += f->length;
+      bp += f->length;
+    } else {
+      size -= f->length;
+      bp -= f->length;
+    }
+  } while (++f < fe);
+  /* Trailing (unused) fragments should have zero length */
+  while (f < fe) {
+    if (! FRAGMENT_IS_INACTIVE(f)) {
+      return FPVal_FragmentUsedPastEnd;
+    }
+    ++f;
+  }
+  if (size != (p->pool_end - p->pool_start)) {
+    return FPVal_FragmentPoolLengthInconsistent;
+  }
+  return FPVal_OK;
 }
 
 fp_fragment_t

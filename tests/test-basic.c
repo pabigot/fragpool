@@ -17,7 +17,6 @@ int clean_suite (void) { return 0; }
 
 static uint8_t data[POOL_SIZE];
 FP_DEFINE_POOL(pool, data, POOL_FRAGMENTS);
-fp_fragment_t fragment = pool_struct.fixed.fragment;
 
 static void
 show_fragments (fp_fragment_t f,
@@ -344,7 +343,7 @@ test_check_pool ()
 {
   CU_ASSERT_EQUAL(sizeof(data), POOL_SIZE);
   CU_ASSERT_EQUAL(sizeof(data), pool->pool_end - pool->pool_start);
-  CU_ASSERT_EQUAL(sizeof(pool_struct.fixed.fragment), POOL_FRAGMENTS*sizeof(struct fp_fragment_t));
+  CU_ASSERT_EQUAL(sizeof(pool_union.fixed.fragment), POOL_FRAGMENTS*sizeof(struct fp_fragment_t));
 }
 
 void

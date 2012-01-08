@@ -65,8 +65,17 @@ typedef struct fp_pool_t {
 /** Define storage for a pool.
  *
  * The rationale for the ugliness is the need to ensure alignment is
- * valid when using the generic type to reference a statically
- * allocated block of data.
+ * valid when using the generic type with a flexible array member to
+ * reference a statically allocated block of data.
+ *
+ * @param _pool the name to be used for the fp_pool_t declaration.  A
+ * static object with this name suffixed by "_union" will be allocated
+ * to hold the pool infrastructure.
+ *
+ * @param _data normally a fixed-size array of uint8_t values.
+ *
+ * @param _fragments the number of fragments to be supported by the
+ * pool.  This should two or larger.
  */
 #define FP_DEFINE_POOL(_pool, _data, _fragments)		\
   static union {						\
@@ -77,14 +86,14 @@ typedef struct fp_pool_t {
       struct fp_fragment_t fragment[_fragments];		\
     } fixed;							\
     struct fp_pool_t generic;					\
-  } _pool##_struct = {						\
+  } _pool##_union = {						\
     .fixed = {							\
       .pool_start = (uint8_t*)_data,				\
       .pool_end = sizeof(data) + (uint8_t*)data,		\
       .fragment_count = _fragments				\
     }								\
   };								\
-  fp_pool_t const _pool = &_pool##_struct.generic
+  fp_pool_t const _pool = &_pool##_union.generic
 
 /**  Reset the pool.  All memory is assigned to a single fragment
  * which is marked unallocated. */
