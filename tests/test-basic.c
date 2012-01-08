@@ -15,12 +15,25 @@ int clean_suite (void) { return 0; }
 #define POOL_SIZE 256
 #define POOL_FRAGMENTS 6
 
-static uint8_t data[POOL_SIZE];
-FP_DEFINE_POOL(pool, data, POOL_FRAGMENTS);
+static uint8_t pool_data[POOL_SIZE];
+static union {
+  struct {
+    FP_POOL_STRUCT_COMMON();
+    struct fp_fragment_t fragment[POOL_FRAGMENTS];
+  } fixed;
+  struct fp_pool_t generic;
+} pool_union = {
+  .generic = {
+    .pool_start = pool_data,
+    .pool_end = pool_data + sizeof(pool_data),
+    .fragment_count = POOL_FRAGMENTS
+  }
+};
+fp_pool_t const pool = &pool_union.generic;
 
 static void
 show_fragments (fp_fragment_t f,
-		   fp_fragment_t fe)
+		fp_fragment_t fe)
 {
   do {
     if (FRAGMENT_IS_ALLOCATED(f)) {
@@ -341,8 +354,8 @@ execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
 void
 test_check_pool ()
 {
-  CU_ASSERT_EQUAL(sizeof(data), POOL_SIZE);
-  CU_ASSERT_EQUAL(sizeof(data), pool->pool_end - pool->pool_start);
+  CU_ASSERT_EQUAL(sizeof(pool_data), POOL_SIZE);
+  CU_ASSERT_EQUAL(sizeof(pool_data), pool->pool_end - pool->pool_start);
   CU_ASSERT_EQUAL(sizeof(pool_union.fixed.fragment), POOL_FRAGMENTS*sizeof(struct fp_fragment_t));
 }
 
@@ -456,7 +469,7 @@ test_fp_merge_adjacent_available ()
 
   config_pool(p, 64, 32, 64, FP_MAX_FRAGMENT_SIZE);
   fp_merge_adjacent_available(f, fe);
-  CU_ASSERT_PTR_EQUAL(f[0].start, data);
+  CU_ASSERT_PTR_EQUAL(f[0].start, p->pool_start);
   CU_ASSERT_EQUAL(f[0].length, 96);
   CU_ASSERT_PTR_EQUAL(f[1].start, f[0].start+f[0].length);
   CU_ASSERT_EQUAL(f[1].length, 64);
@@ -464,7 +477,7 @@ test_fp_merge_adjacent_available ()
 
   config_pool(p, 64, 32, 64, FP_MAX_FRAGMENT_SIZE);
   fp_merge_adjacent_available(f+1, fe);
-  CU_ASSERT_PTR_EQUAL(f[0].start, data);
+  CU_ASSERT_PTR_EQUAL(f[0].start, p->pool_start);
   CU_ASSERT_EQUAL(f[0].length, 64);
   CU_ASSERT_PTR_EQUAL(f[1].start, f[0].start+f[0].length);
   CU_ASSERT_EQUAL(f[1].length, 96);

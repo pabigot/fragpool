@@ -3,7 +3,11 @@
 
 #include <stdint.h>
 
+/** A fragment size */
 typedef uint16_t fp_size_t;
+
+/** A signed fragment size, for internal use where the sign carries
+ * non-length significance. */
 typedef int16_t fp_ssize_t;
 
 /** The maximum size of a fragment.  This is intentionally a signed
@@ -32,6 +36,44 @@ typedef struct fp_fragment_t {
   fp_ssize_t length;
 } *fp_fragment_t;
 
+/** Prefix common to all pool structures.
+ *
+ * Although struct fp_pool_t has a flexible array member that makes it
+ * easy to dynamically allocate a pool structure, the whole point of
+ * fragpool is its use in systems that don't do dynamic allocation.
+ * In that situation, each static pool definition needs its own
+ * structure that defines the fragment array to the correct size.  An
+ * example of how to accomplish this while still using the generic
+ * type for reference to the pool is:
+
+static uint8_t pool_data[POOL_SIZE];
+static union {
+  struct {
+    FP_POOL_STRUCT_COMMON();
+    struct fp_fragment_t fragment[POOL_FRAGMENTS];
+  } fixed;
+  struct fp_pool_t generic;
+} pool_union = {
+  .generic = {
+    .pool_start = pool_data,
+    .pool_end = pool_data + sizeof(pool_data),
+    .fragment_count = POOL_FRAGMENTS
+  }
+};
+fp_pool_t const pool = &pool_union.generic;
+
+ */
+#define FP_POOL_STRUCT_COMMON()						\
+  /** The address of the start of the pool */				\
+  uint8_t* pool_start;							\
+									\
+  /** The address past the end of the pool.  The number of octets in	\
+   * the pool is (pool_end-pool_start). */				\
+  uint8_t* pool_end;							\
+									\
+  /** The number of fragments supported by the pool */			\
+  fp_size_t fragment_count
+
 /** Bookkeeping for a fragment pool.
  * 
  * @warning The only reason you get to see the internals is because
@@ -39,20 +81,11 @@ typedef struct fp_fragment_t {
  * You don't get to inspect or mutate the fields of this structure, so
  * any descriptive comments are irrelevant to you. */
 typedef struct fp_pool_t {
-  /** The address of the start of the pool */
-  uint8_t* pool_start;
+  FP_POOL_STRUCT_COMMON();
 
-  /** The address past the end of the pool.  The number of octets in
-   * the pool is (pool_end-pool_start). */
-  uint8_t* pool_end;
-
-  /** The number of fragments supported by the pool */
-  fp_size_t fragment_count;
-
-  /** The fragment array.  In this generic structure this is a
-   * flexible array member; it must be in a union with a compatible
-   * fixed declaration in which the length of the array is
-   * positive.
+  /** The fragment array.  Although in this declaration it is a
+   * flexible array member, in general it should have at least two
+   * members.
    *
    * The fragments partition the pool, starting with the first
    * fragment which begins at the pool start.  All inactive fragments
@@ -61,39 +94,6 @@ typedef struct fp_pool_t {
    * were adjacent, they should have been merged). */
   struct fp_fragment_t fragment[];
 } *fp_pool_t;
-
-/** Define storage for a pool.
- *
- * The rationale for the ugliness is the need to ensure alignment is
- * valid when using the generic type with a flexible array member to
- * reference a statically allocated block of data.
- *
- * @param _pool the name to be used for the fp_pool_t declaration.  A
- * static object with this name suffixed by "_union" will be allocated
- * to hold the pool infrastructure.
- *
- * @param _data normally a fixed-size array of uint8_t values.
- *
- * @param _fragments the number of fragments to be supported by the
- * pool.  This should two or larger.
- */
-#define FP_DEFINE_POOL(_pool, _data, _fragments)		\
-  static union {						\
-    struct {							\
-      uint8_t* pool_start;					\
-      uint8_t* pool_end;					\
-      fp_size_t fragment_count;					\
-      struct fp_fragment_t fragment[_fragments];		\
-    } fixed;							\
-    struct fp_pool_t generic;					\
-  } _pool##_union = {						\
-    .fixed = {							\
-      .pool_start = (uint8_t*)_data,				\
-      .pool_end = sizeof(data) + (uint8_t*)data,		\
-      .fragment_count = _fragments				\
-    }								\
-  };								\
-  fp_pool_t const _pool = &_pool##_union.generic
 
 /**  Reset the pool.  All memory is assigned to a single fragment
  * which is marked unallocated. */
@@ -104,16 +104,18 @@ void fp_reset (fp_pool_t pool);
  * A block of memory of at least min_size octets is allocated from the
  * pool and returned to the caller.  The value pointed to by
  * fragment_endp is updated to reflect the first byte past the end of
- * the allocated region.  The largest available fragment that does not
- * exceed max_size is returned.  If the requested maximum size is
- * larger than the selected fragment, and there are slots available,
- * the remainder is retained as an available fragment.
+ * the allocated region.  The "best" available fragment is selected
+ * taking into account the required min_size and the desired max_size.
+ * If the requested maximum size is larger than the selected fragment
+ * and there are slots available, the remainder is split off as a new
+ * available fragment.
  * 
  * @param pool the pool from which memory is obtained
  * 
  * @param min_size the minimum size acceptable fragment
  * 
- * @param max_size the maximum size usable fragment
+ * @param max_size the maximum size usable fragment.  Use
+ * FP_MAX_FRAGMENT_SIZE to get the largest available fragment.
  * 
  * @param fragment_endp where to store the end of the fragment
  * 
