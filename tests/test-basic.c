@@ -118,7 +118,10 @@ release_fragments (fp_pool_t p, ...)
 #define PO_RELEASE 'r'
 #define PO_RESIZE 'x'
 #define PO_REALLOCATE 'm'
+#define PO_FILL_FRAGMENT 'f'
+#define PO_DISPLAY_FRAGMENT 'd'
 #define PO_CHECK_FRAGMENT_LENGTH 'C'
+#define PO_CHECK_FRAGMENT_CONTENT 'c'
 #define PO_VALIDATE 'V'
 #define PO_CHECK_IS_RESET 'R'
 #define PO_END_COMMANDS 0
@@ -146,7 +149,9 @@ execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
       printf("\tallocate %u..%u ... ", min_size, max_size);
       b = fp_request(p, min_size, max_size, &be);
       if (NULL != b) {
+	fp_fragment_t f = fp_get_fragment(p, b);
 	printf("produced %p len %u\n", b, (unsigned int)(be-b));
+	memset(b, '0' + (f - p->fragment), be-b);
       } else {
 	printf("failed\n");
       }
@@ -185,6 +190,38 @@ execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
 	printf("FAILED\n");
 	CU_FAIL("pool validation");
       }
+      break;
+    }
+    case PO_FILL_FRAGMENT: {	/* fill fragment: PO_FILL_FRAGMENT fragment_index char offset length(-1=all) */
+      int fi = va_arg(ap, int);
+      int fill_char = va_arg(ap, int);
+      int offset = va_arg(ap, int);
+      int len = va_arg(ap, int);
+      fp_fragment_t f = p->fragment + fi;
+      uint8_t* b = f->start + offset;
+      uint8_t* be = f->start + abs(f->length);
+      b += offset;
+      if ((0 > len) || (len > abs(f->length))) {
+	len = abs(f->length);
+      }
+      if ((b + len) < be) {
+	be = b + len;
+      }
+      printf("\tfill %p..%p with '%c' (0x%02x)\n", b, be, fill_char, fill_char);
+      memset(b, fill_char, be-b);
+      break;
+    }
+    case PO_DISPLAY_FRAGMENT: {	/* display fragment: PO_DISPLAY_FRAGMENT fragment_index */
+      int fi = va_arg(ap, int);
+      fp_fragment_t f = p->fragment + fi;
+      uint8_t* b = f->start;
+      uint8_t* be = b + abs(f->length);
+
+      printf("\tfragment %d@%u:\n\t\t", f->length, fi);
+      while (b < be) {
+	putchar(*b++);
+      }
+      putchar('\n');
       break;
     }
     case PO_CHECK_IS_RESET: {			/* check reset: PO_CHECK_IS_RESET */
@@ -611,8 +648,22 @@ test_execute_resize ()
 }
 
 void
+test_execute_display ()
+{
+  fp_reset(pool);
+  memset(pool->pool_start, '?', pool->pool_end - pool->pool_start);
+  execute_pool_ops(pool, __FILE__, __LINE__,
+		   PO_ALLOCATE, 64, 64,
+		   PO_DISPLAY_FRAGMENT, 0,
+		   PO_FILL_FRAGMENT, 0, 'a', 0, -1,
+		   PO_DISPLAY_FRAGMENT, 0,
+		   PO_END_COMMANDS);
+}
+
+void
 test_execute_reallocate ()
 {
+  /* Extend into following fragment */
   fp_reset(pool);
   execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_ALLOCATE, 64, 64,
@@ -620,6 +671,7 @@ test_execute_reallocate ()
 		   PO_ALLOCATE, 64, 64,
 		   PO_RELEASE, 1,
 		   PO_REALLOCATE, 0, 96, 128,
+		   PO_DISPLAY_FRAGMENT, 0,
 		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
 		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
 		   PO_CHECK_FRAGMENT_LENGTH, 2, 64,
@@ -652,6 +704,7 @@ main (int argc,
     { "execute_release", test_execute_release },
     { "execute_resize", test_execute_resize },
     { "execute_reallocate", test_execute_reallocate },
+    { "execute_display", test_execute_display },
   };
   const int ntests = sizeof(tests) / sizeof(*tests);
   int i;
