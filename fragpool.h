@@ -197,7 +197,9 @@ uint8_t* fp_resize (fp_pool_t pool,
  * @param min_size the minimum acceptable size for a new fragment.  Up
  * to this many octets from the existing fragment are copied if the
  * new fragment begins at a different location.  The current fragment
- * may be smaller than this size.
+ * may be smaller than this size.  For the purposes of determining a
+ * new location the value is increased to satisfy the pool alignment,
+ * but the provided value is used when preserving the buffer contents.
  * 
  * @param new_size the new desired size for the fragment, in bytes.
  * This is increased if necessary to satisfy the pool alignment

@@ -734,8 +734,8 @@ test_execute_resize ()
 		   PO_END_COMMANDS);
 
   /* Expand when following is available and can satisfy request */
-  fp_reset(pool);
   execute_pool_ops(pool, __FILE__, __LINE__,
+		   PO_RESET,
 		   PO_ALLOCATE, 32, 64,
 		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
 		   PO_CHECK_FRAGMENT_LENGTH, 1, 192,
@@ -820,7 +820,6 @@ test_execute_reallocate ()
 		   PO_END_COMMANDS);
 
   /* Move to end fragment, full use */
-  fp_reset(pool);
   execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_RESET,
 		   PO_ALLOCATE, 64, 64,
@@ -842,7 +841,6 @@ test_execute_reallocate ()
 		   PO_END_COMMANDS);
 
   /* Move to end fragment, partial use */
-  fp_reset(pool);
   execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_RESET,
 		   PO_ALLOCATE, 64, 64,
@@ -865,7 +863,6 @@ test_execute_reallocate ()
 		   PO_END_COMMANDS);
 
   /* Move to preceding fragment */
-  fp_reset(pool);
   execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_RESET,
 		   PO_ALLOCATE, 64, 64,
@@ -892,7 +889,6 @@ test_execute_reallocate ()
 		   PO_END_COMMANDS);
 
   /* Move to preceding fragment, take part of following */
-  fp_reset(pool);
   execute_pool_ops(pool, __FILE__, __LINE__,
 		   PO_RESET,
 		   PO_ALLOCATE, 64, 64,
@@ -961,6 +957,7 @@ test_pool_alignment ()
   CU_ASSERT_EQUAL(be, f->start - f->length);
   CU_ASSERT_EQUAL(-10, f->length);
   CU_ASSERT_EQUAL(0, fp_validate(p));
+
   b = fp_resize(p, b, 15, &be);
   CU_ASSERT_EQUAL(b, f->start);
   CU_ASSERT_EQUAL(be, f->start - f->length);
@@ -974,6 +971,79 @@ test_pool_alignment ()
   CU_ASSERT_EQUAL(0, f[1].length);
   CU_ASSERT_EQUAL(0, fp_validate(p));
 
+  /* Verify validation can find fragment alignment violations */
+  fp_reset(pool);
+  CU_ASSERT_EQUAL(1, pool->pool_alignment);
+  CU_ASSERT_NOT_EQUAL(1, alignment);
+  pool->pool_alignment = alignment;
+  CU_ASSERT_EQUAL(0, fp_validate(pool));
+  pool->pool_alignment = 1;
+  b = fp_request(pool, 3, 9, &be);
+  show_pool(pool);
+  CU_ASSERT_EQUAL(0, fp_validate(pool));
+  pool->pool_alignment = alignment;
+  CU_ASSERT_NOT_EQUAL(0, fp_validate(pool));
+  pool->pool_alignment = 1;
+
+  /* Verify reallocation wholesale move */
+  execute_pool_ops(p, __FILE__, __LINE__,
+		   PO_RESET,
+		   PO_ALLOCATE, 3, 9,
+		   PO_ALLOCATE, 4, 9,
+		   PO_ALLOCATE, 5, 9,
+		   PO_RELEASE, 1,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, 10,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
+		   PO_REALLOCATE, 0, 7, 25,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, 20,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, -10,
+		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, -1,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -26,
+		   PO_CHECK_FRAGMENT_CONTENT, 2, '0', 0, 7,
+		   PO_CHECK_FRAGMENT_CONTENT, 2, '?', 7, -1,
+		   PO_END_COMMANDS);
+
+  /* Verify reallocation resize */
+  execute_pool_ops(p, __FILE__, __LINE__,
+		   PO_RESET,
+		   PO_ALLOCATE, 3, 9,
+		   PO_ALLOCATE, 4, 9,
+		   PO_ALLOCATE, 5, 9,
+		   PO_RELEASE, 1,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, 10,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
+		   PO_REALLOCATE, 0, 7, 17,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -18,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, 2,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
+		   PO_END_COMMANDS);
+  
+  /* Verify reallocation shift down */
+  execute_pool_ops(p, __FILE__, __LINE__,
+		   PO_RESET,
+		   PO_ALLOCATE, 3, 9,
+		   PO_ALLOCATE, 4, 9,
+		   PO_ALLOCATE, 5, 9,
+		   PO_ALLOCATE, 6, 9,
+		   PO_RELEASE, 1,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, 10,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
+		   PO_CHECK_FRAGMENT_LENGTH, 3, -10,
+		   PO_REALLOCATE, 2, 7, 17,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, -18,
+		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, 7,
+		   /* This next check verifies that the unaligned
+		    * min_size was used to preserve data.  This is
+		    * intentional. */
+		   PO_CHECK_FRAGMENT_CONTENT, 1, '1', 7, 3,
+		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 10, -1,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, 2,
+		   PO_CHECK_FRAGMENT_LENGTH, 3, -10,
+		   PO_END_COMMANDS);
 }
 
 int

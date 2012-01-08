@@ -319,6 +319,7 @@ fp_reallocate (fp_pool_t p,
   fp_fragment_t f = get_fragment(p, bp);
   fp_fragment_t frs;
   fp_fragment_t fre;
+  fp_size_t original_min_size;
   fp_size_t frlen;
   fp_fragment_t bf;
   fp_size_t bflen;
@@ -330,6 +331,7 @@ fp_reallocate (fp_pool_t p,
     return NULL;
   }
 
+  original_min_size = min_size;
   min_size = align_size_up(p, min_size);
   if (FP_MAX_FRAGMENT_SIZE != max_size) {
     max_size = align_size_up(p, max_size);
@@ -378,8 +380,8 @@ fp_reallocate (fp_pool_t p,
   /* Save the minimum of the current fragment length and the desired
    * new size */
   copy_len = -f->length;
-  if (copy_len > min_size) {
-    copy_len = min_size;
+  if (copy_len > original_min_size) {
+    copy_len = original_min_size;
   }
   /* If best is same fragment, just resize */
   if (bf == f) { /* == frs */
