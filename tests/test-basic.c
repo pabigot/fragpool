@@ -32,6 +32,23 @@ static union {
 };
 fp_pool_t const pool = &pool_union.generic;
 
+static uint8_t apool_data[2+POOL_SIZE];
+static union {
+  struct {
+    FP_POOL_STRUCT_COMMON();
+    struct fp_fragment_t fragment[POOL_FRAGMENTS];
+  } fixed;
+  struct fp_pool_t generic;
+} apool_union = {
+  .generic = {
+    .pool_start = apool_data+1,
+    .pool_end = apool_data+1 + POOL_SIZE,
+    .pool_alignment = 2,
+    .fragment_count = POOL_FRAGMENTS
+  }
+};
+fp_pool_t const apool = &apool_union.generic;
+
 static void
 show_fragments (fp_fragment_t f,
 		fp_fragment_t fe)
@@ -907,6 +924,45 @@ test_execute_reallocate ()
 		   PO_END_COMMANDS);
 }
 
+void
+test_pool_alignment ()
+{
+  uint8_t alignment;
+  fp_pool_t p = apool;
+  uintptr_t ps;
+  uintptr_t pe;
+  fp_fragment_t f = p->fragment;
+  uint8_t* b;
+  uint8_t* be;
+
+  /* Verify alignment is not universal, and that validation detects
+     invalid alignments. */
+  alignment = p->pool_alignment;
+  CU_ASSERT_EQUAL(2, alignment);
+  fp_reset(p);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+  p->pool_alignment = 0;
+  CU_ASSERT_NOT_EQUAL(0, fp_validate(p));
+  p->pool_alignment = 3;
+  CU_ASSERT_NOT_EQUAL(0, fp_validate(p));
+  p->pool_alignment = alignment;
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+
+  /* Verify that pool is not aligned, but first fragment is. */
+  ps = (uintptr_t)p->pool_start;
+  pe = (uintptr_t)p->pool_end;
+  CU_ASSERT_EQUAL(1, ps & 1);
+  CU_ASSERT_PTR_NOT_EQUAL(p->pool_start, f->start);
+  CU_ASSERT_EQUAL(1, pe & 1);
+  CU_ASSERT_PTR_NOT_EQUAL(p->pool_end, f->start + f->length);
+
+  b = fp_request(p, 3, 9, &be);
+  CU_ASSERT_EQUAL(b, f->start);
+  CU_ASSERT_EQUAL(be, f->start - f->length);
+  show_pool(p);
+  CU_ASSERT_EQUAL(0, fp_validate(p));
+}
+
 int
 main (int argc,
       char* argv[])
@@ -918,6 +974,7 @@ main (int argc,
     void (*fn) (void);
   } test_def;
   const test_def tests[] = {
+#if 0
     { "check pool", test_check_pool },
     { "fp_reset", test_fp_reset },
     { "fp_validate", test_fp_validate },
@@ -932,6 +989,8 @@ main (int argc,
     { "execute_resize", test_execute_resize },
     { "execute_display", test_execute_display },
     { "execute_reallocate", test_execute_reallocate },
+#endif
+    { "pool_alignment", test_pool_alignment },
   };
   const int ntests = sizeof(tests) / sizeof(*tests);
   int i;
