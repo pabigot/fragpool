@@ -117,6 +117,7 @@ release_fragments (fp_pool_t p, ...)
 #define PO_ALLOCATE 'a'
 #define PO_RELEASE 'r'
 #define PO_RESIZE 'x'
+#define PO_REALLOCATE 'm'
 #define PO_CHECK_FRAGMENT_LENGTH 'C'
 #define PO_VALIDATE 'V'
 #define PO_CHECK_IS_RESET 'R'
@@ -202,6 +203,22 @@ execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
       b = fp_resize(p, f->start, len, &be);
       if (NULL != b) {
 	printf("got %u at %p\n", (int)(be-b), b);
+      } else {
+	printf("failed\n");
+      }
+      break;
+    }
+    case PO_REALLOCATE: {	/* reallocate: PO_REALLOCATE fragment_index min_size max_size */
+      int fi = va_arg(ap, int);
+      int min_size = va_arg(ap, int);
+      int max_size = va_arg(ap, int);
+      uint8_t* b = p->fragment[fi].start;
+      uint8_t* be;
+
+      printf("\treallocate %d@%u %u..%u ... ", p->fragment[fi].length, fi, min_size, max_size);
+      b = fp_reallocate(p, b, min_size, max_size, &be);
+      if (NULL != b) {
+	printf("produced %p len %u\n", b, (unsigned int)(be-b));
       } else {
 	printf("failed\n");
       }
@@ -593,6 +610,24 @@ test_execute_resize ()
 		   PO_END_COMMANDS);
 }
 
+void
+test_execute_reallocate ()
+{
+  fp_reset(pool);
+  execute_pool_ops(pool, __FILE__, __LINE__,
+		   PO_ALLOCATE, 64, 64,
+		   PO_ALLOCATE, 64, 64,
+		   PO_ALLOCATE, 64, 64,
+		   PO_RELEASE, 1,
+		   PO_REALLOCATE, 0, 96, 128,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, 64,
+		   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
+		   PO_VALIDATE,
+		   PO_END_COMMANDS);
+}
+
 int
 main (int argc,
       char* argv[])
@@ -616,6 +651,7 @@ main (int argc,
     { "execute_alloc", test_execute_alloc },
     { "execute_release", test_execute_release },
     { "execute_resize", test_execute_resize },
+    { "execute_reallocate", test_execute_reallocate },
   };
   const int ntests = sizeof(tests) / sizeof(*tests);
   int i;

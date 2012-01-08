@@ -135,7 +135,7 @@ uint8_t* fp_request (fp_pool_t pool,
  * @param bp the start of an allocated block returned by fp_request,
  * fp_resize, or fp_reallocate.
  * 
- * @param new_size the new desired size for the pool.
+ * @param new_size the new desired size for the fragment.
  * 
  * @param fragment_endp where to store the end of the fragment
  *
@@ -150,10 +150,39 @@ uint8_t* fp_resize (fp_pool_t pool,
 		    fp_size_t new_size,
 		    uint8_t** fragment_endp);
 
+/** Attempt to resize a fragment allowing moves.
+ *
+ * This operation will place the fragment in the best available
+ * location, moving it if necessary to do so.  The expectation is this
+ * operation is equivalent to saving the current fragment contents,
+ * releasing the fragment, requesting a new fragment with the
+ * specified characteristics, and initializing it with the old
+ * fragment contents, but without requiring external storage for
+ * what's currently in the fragment.
+ *
+ * If no satisfactory fragment can be found, the function returns a
+ * null pointer, but the existing fragment is not affected.
+ * 
+ * @param pool the pool from which bp was allocated
+ * 
+ * @param bp the start of an allocated block returned by fp_request,
+ * fp_resize, or fp_reallocate.
+ * 
+ * @param min_size the minimum acceptable size for a new fragment.  Up
+ * to this many octets from the existing fragment are copied if the
+ * new fragment begins at a different location.  The current fragment
+ * may be smaller than this size.
+ * 
+ * @param new_size the new desired size for the fragment.
+ * 
+ * @param fragment_endp where to store the end of the fragment
+ *
+ * @return a pointer to the start of the returned region, or a null
+ * pointer if the allocation cannot be satisfied. */
 uint8_t* fp_reallocate (fp_pool_t pool,
-			uint8_t* fp,
-			fp_size_t keep_size,
-			fp_size_t new_size,
+			uint8_t* bp,
+			fp_size_t min_size,
+			fp_size_t max_size,
 			uint8_t** fragment_endp);
 
 /** Release a block of memory to the pool.

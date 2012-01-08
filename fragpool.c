@@ -288,6 +288,110 @@ fp_resize (fp_pool_t p,
   return f->start;
 }
 
+uint8_t*
+fp_reallocate (fp_pool_t p,
+	       uint8_t* bp,
+	       fp_size_t min_size,
+	       fp_size_t max_size,
+	       uint8_t** fragment_endp)
+{
+  fp_fragment_t f = get_fragment(p, bp);
+  fp_fragment_t frs;
+  fp_fragment_t fre;
+  fp_size_t frlen;
+  fp_fragment_t bf;
+  fp_size_t bflen;
+  const fp_fragment_t fe = p->fragment + p->fragment_count;
+  fp_size_t copy_len;
+
+  /* Validate arguments */
+  if ((NULL == f) || (0 >= min_size) || (min_size > max_size) || (NULL == fragment_endp)) {
+    return NULL;
+  }
+
+  /* Create hooks for a pseudo-slot at f0 for flen octets,
+   * representing what would happen if this fragment were released. */
+  frs = fre = f;
+  frlen = -f->length;
+  if ((frs > p->fragment) && FRAGMENT_IS_AVAILABLE(frs-1)) {
+    frs = f-1;
+    frlen += frs->length;
+  }
+  if (((fre+1) < fe) && FRAGMENT_IS_AVAILABLE(fre+1)) {
+    fre = f+1;
+    frlen += fre->length;
+  }
+  bf = NULL;
+  bflen = 0;
+  {
+    fp_fragment_t xf = p->fragment;
+    do {
+      fp_size_t flen = xf->length;
+      
+      if (xf == frs) {
+	flen = frlen;
+      }
+      if (min_size <= flen) {
+	if ((NULL == bf)
+	    || ((flen > bflen) && (bflen < max_size))) {
+	  bf = xf;
+	  bflen = flen;
+	}
+      }
+      if (xf == frs) {
+	xf = fre;
+      }
+    } while (++xf < fe);
+  }
+  
+  /* If nothing can satisfy the minimum, fail. */
+  if (NULL == bf) {
+    return NULL;
+  }
+  /* Save the minimum of the current fragment length and the desired
+   * new size */
+  copy_len = -f->length;
+  if (copy_len > min_size) {
+    copy_len = min_size;
+  }
+  /* If best is same fragment, just resize */
+  if (bf == f) { /* == frs */
+    return fp_resize(p, bp, max_size, fragment_endp);
+  }
+  /* If best is available fragment preceding this fragment, shift the
+   * data. */
+  if (bf == frs) {
+    fp_size_t ffrs_len;
+    fp_size_t new_len;
+
+    if (f < fre) {
+      merge_adjacent_available(f, fe);
+    }
+    memmove(frs->start, f->start, copy_len);
+    ffrs_len = frs->length - f->length;
+    new_len = ffrs_len;
+    if (new_len > max_size) {
+      new_len = max_size;
+    }
+    frs->length = -new_len;
+    *fragment_endp = f->start;
+    if (ffrs_len == new_len) {
+      while ((++f < fe) && (! FRAGMENT_IS_INACTIVE(f))) {
+	f[-1] = f[0];
+      }
+      f[-1].length = 0;
+    } else {
+      f->start = *fragment_endp;
+      f->length = ffrs_len - new_len;
+    }
+    return frs->start;
+  }
+  bp = complete_allocation(p, bf, max_size, fragment_endp);
+  memmove(bp, f->start, copy_len);
+  fp_release(p, f->start);
+  return bp;
+}
+
 fp_fragment_t
 fp_get_fragment (fp_pool_t p,
 		 uint8_t* bp)
