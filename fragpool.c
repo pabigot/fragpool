@@ -326,7 +326,7 @@ fp_reallocate (fp_pool_t p,
   {
     fp_fragment_t xf = p->fragment;
     do {
-      fp_size_t flen = abs(xf->length);
+      fp_ssize_t flen = xf->length;
       
       if (xf == frs) {
 	flen = frlen;
