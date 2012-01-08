@@ -194,16 +194,16 @@ execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
       int offset = va_arg(ap, int);
       int len = va_arg(ap, int);
       fp_fragment_t f = p->fragment + fi;
-      uint8_t* b = f->start + offset;
+      uint8_t* b = f->start;
       uint8_t* be = f->start + abs(f->length);
-      b += offset;
       if ((0 > len) || (len > abs(f->length))) {
 	len = abs(f->length);
       }
+      b += offset;
       if ((b + len) < be) {
 	be = b + len;
       }
-      printf("\tcheck %p..%p in %d@%u against '%c' (0x%02x) ... ", b, be, f->length, fi, fill_char, fill_char);
+      printf("\tcheck %u in %p..%p in %d@%u against '%c' (0x%02x) ... ", (int)(be-b), b, be, f->length, fi, fill_char, fill_char);
       while (b < be) {
 	if (fill_char != *b) {
 	  break;
@@ -744,6 +744,24 @@ test_execute_reallocate ()
 		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
 		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
 		   PO_CHECK_FRAGMENT_LENGTH, 2, 64,
+		   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
+		   PO_VALIDATE,
+		   PO_END_COMMANDS);
+
+  /* Move to end fragment */
+  fp_reset(pool);
+  execute_pool_ops(pool, __FILE__, __LINE__,
+		   PO_RESET,
+		   PO_ALLOCATE, 64, 64,
+		   PO_ALLOCATE, 64, 64,
+		   PO_DISPLAY_POOL,
+		   PO_REALLOCATE, 0, 96, 128,
+		   PO_DISPLAY_POOL,
+		   PO_CHECK_FRAGMENT_LENGTH, 0, 64,
+		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+		   PO_CHECK_FRAGMENT_LENGTH, 2, -128,
+		   PO_CHECK_FRAGMENT_CONTENT, 2, '0', 0, 64,
+		   PO_CHECK_FRAGMENT_CONTENT, 2, '?', 64, 64,
 		   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
 		   PO_VALIDATE,
 		   PO_END_COMMANDS);
