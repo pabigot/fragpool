@@ -119,6 +119,7 @@ release_fragments (fp_pool_t p, ...)
 #define PO_RESIZE 'x'
 #define PO_REALLOCATE 'm'
 #define PO_FILL_FRAGMENT 'f'
+#define PO_DISPLAY_POOL 'D'
 #define PO_DISPLAY_FRAGMENT 'd'
 #define PO_CHECK_FRAGMENT_LENGTH 'C'
 #define PO_CHECK_FRAGMENT_CONTENT 'c'
@@ -209,6 +210,34 @@ execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
       }
       printf("\tfill %p..%p with '%c' (0x%02x)\n", b, be, fill_char, fill_char);
       memset(b, fill_char, be-b);
+      break;
+    }
+    case PO_DISPLAY_POOL: {	/* display pool: PO_DISPLAY_POOL */
+      int fi;
+      
+      printf("\tPool %p with %u fragments and %u bytes from %p to %p:\n",
+	     (void*)p, p->fragment_count, (fp_size_t)(p->pool_end-p->pool_start),
+	     p->pool_start, p->pool_end);
+      for (fi = 0; fi < p->fragment_count; ++fi) {
+	fp_fragment_t f = p->fragment + fi;
+	uint8_t* b = f->start;
+	uint8_t* be = f->start + abs(f->length);
+	
+	printf("\t\t%u: ", fi);
+	if (FRAGMENT_IS_INACTIVE(f)) {
+	  printf("inactive fragment\n");
+	  continue;
+	}
+	if (FRAGMENT_IS_ALLOCATED(f)) {
+	  printf("%u allocated at %p: ", -f->length, f->start);
+	} else {
+	  printf("%u available at %p: ", f->length, f->start);
+	}
+	while (b < be) {
+	  putchar(*b++);
+	}
+	putchar('\n');
+      }
       break;
     }
     case PO_DISPLAY_FRAGMENT: {	/* display fragment: PO_DISPLAY_FRAGMENT fragment_index */
@@ -657,6 +686,7 @@ test_execute_display ()
 		   PO_DISPLAY_FRAGMENT, 0,
 		   PO_FILL_FRAGMENT, 0, 'a', 0, -1,
 		   PO_DISPLAY_FRAGMENT, 0,
+		   PO_DISPLAY_POOL,
 		   PO_END_COMMANDS);
 }
 
@@ -670,14 +700,16 @@ test_execute_reallocate ()
 		   PO_ALLOCATE, 64, 64,
 		   PO_ALLOCATE, 64, 64,
 		   PO_RELEASE, 1,
+		   PO_DISPLAY_POOL,
 		   PO_REALLOCATE, 0, 96, 128,
-		   PO_DISPLAY_FRAGMENT, 0,
+		   PO_DISPLAY_POOL,
 		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
 		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
 		   PO_CHECK_FRAGMENT_LENGTH, 2, 64,
 		   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
 		   PO_VALIDATE,
 		   PO_END_COMMANDS);
+
 }
 
 int
@@ -692,6 +724,7 @@ main (int argc,
   } test_def;
   const test_def tests[] = {
     { "check pool", test_check_pool },
+#if 0
     { "fp_reset", test_fp_reset },
     { "fp_validate", test_fp_validate },
     { "fp_request_params", test_fp_request_params },
@@ -703,8 +736,9 @@ main (int argc,
     { "execute_alloc", test_execute_alloc },
     { "execute_release", test_execute_release },
     { "execute_resize", test_execute_resize },
-    { "execute_reallocate", test_execute_reallocate },
+#endif
     { "execute_display", test_execute_display },
+    { "execute_reallocate", test_execute_reallocate },
   };
   const int ntests = sizeof(tests) / sizeof(*tests);
   int i;
