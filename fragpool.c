@@ -54,7 +54,7 @@ get_fragment (fp_pool_t p,
     if (f->start == bp) {
       return f;
     }
-  } while (++f < fe);
+  } while ((++f < fe) && (NULL != f->start));
   return NULL;
 }
 
@@ -327,7 +327,11 @@ fp_reallocate (fp_pool_t p,
   fp_size_t copy_len;
 
   /* Validate arguments */
-  if ((NULL == f) || (0 >= min_size) || (min_size > max_size) || (NULL == fragment_endp)) {
+  if ((NULL == f)
+      || (! FRAGMENT_IS_ALLOCATED(f))
+      || (0 >= min_size)
+      || (min_size > max_size)
+      || (NULL == fragment_endp)) {
     return NULL;
   }
 

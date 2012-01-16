@@ -401,6 +401,7 @@ test_fp_request_params (void)
   CU_ASSERT_PTR_NULL(fp_request(p, 0, FP_MAX_FRAGMENT_SIZE, &bpe));
   CU_ASSERT_PTR_NULL(fp_request(p, 1, 0, &bpe));
   CU_ASSERT_PTR_NULL(fp_request(p, POOL_SIZE, FP_MAX_FRAGMENT_SIZE, NULL));
+  CU_ASSERT_PTR_NULL(fp_request(p, FP_MAX_FRAGMENT_SIZE, FP_MAX_FRAGMENT_SIZE, &bpe));
 }
 
 void
@@ -577,6 +578,38 @@ test_fp_release ()
   CU_ASSERT_EQUAL(-10, f[0].length);
   CU_ASSERT_EQUAL(f[1].length, (p->pool_end - f[1].start));
   CU_ASSERT_EQUAL(0, f[2].length);
+}
+
+void
+test_fp_resize_params ()
+{
+  fp_pool_t p = pool;
+  fp_fragment_t f = p->fragment;
+  uint8_t* bpe;
+
+  fp_reset(p);
+  CU_ASSERT_POOL_IS_RESET(p);
+  CU_ASSERT_PTR_NULL(fp_resize(p, NULL, FP_MAX_FRAGMENT_SIZE, &bpe));
+  CU_ASSERT_PTR_NULL(fp_resize(p, f->start, FP_MAX_FRAGMENT_SIZE, &bpe));
+}
+
+void
+test_fp_reallocate_params ()
+{
+  fp_pool_t p = pool;
+  fp_fragment_t f = p->fragment;
+  uint8_t* bpe;
+
+  fp_reset(p);
+  CU_ASSERT_POOL_IS_RESET(p);
+  CU_ASSERT_PTR_NULL(fp_reallocate(p, NULL, 2, 4, &bpe));
+  config_pool(p, 32, -32, 64, -64, -FP_MAX_FRAGMENT_SIZE);
+  CU_ASSERT_PTR_NULL(fp_reallocate(p, f[1].start, 4, 2, &bpe));
+  CU_ASSERT_PTR_NULL(fp_reallocate(p, f[1].start, 2, 4, NULL));
+  CU_ASSERT_PTR_NULL(fp_reallocate(p, f[0].start, 2, 4, &bpe));
+  CU_ASSERT_PTR_NULL(fp_reallocate(p, f[1].start, 200, FP_MAX_FRAGMENT_SIZE, &bpe));
+  CU_ASSERT_PTR_NOT_NULL(fp_reallocate(p, f[1].start, 2, 4, &bpe));
+  fp_reset(p);
 }
 
 void
@@ -1066,6 +1099,8 @@ main (int argc,
     { "fp_get_fragment", test_fp_get_fragment },
     { "fp_release_params", test_fp_release_params },
     { "fp_release", test_fp_release },
+    { "fp_resize_params", test_fp_resize_params },
+    { "fp_reallocate_params", test_fp_reallocate_params },
     { "execute_alloc", test_execute_alloc },
     { "execute_release", test_execute_release },
     { "execute_resize", test_execute_resize },
