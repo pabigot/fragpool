@@ -20,10 +20,15 @@ libfragpool.a: $(OBJ)
 
 clean:
 	-rm -f $(OBJ)
+	-rm -f *.gcov
 
 realclean: clean
 	-rm -f $(DEP) $(TARGET)
+	-rm -f *.gcda *.gcno
 	-rm -rf html
+
+coverage: realclean
+	$(MAKE) OPTCFLAGS='-fprofile-arcs -ftest-coverage' 
 
 %.d: %.c
 	@set -e; rm -f $@; \

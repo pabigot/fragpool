@@ -18,9 +18,14 @@ test-basic: test-basic.o $(FRAGPOOL_LIB)
 
 clean:
 	-rm -f $(OBJ)
+	-rm -f *.gcov
 
 realclean: clean
 	-rm -f $(DEP) $(TESTS)
+	-rm -f *.gcda *.gcno
+
+coverage: realclean
+	$(MAKE) OPTCFLAGS='-fprofile-arcs -ftest-coverage' LDFLAGS=-fprofile-arcs
 
 %.d: %.c
 	@set -e; rm -f $@; \
