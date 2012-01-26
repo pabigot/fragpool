@@ -536,6 +536,8 @@ fp_validate (fp_pool_t p)
   return FPVal_OK;
 }
 
+#if FRAGPOOL_EXPOSE_INTERNALS
+
 fp_fragment_t
 fp_get_fragment (fp_pool_t p,
 		 uint8_t* bp)
@@ -558,3 +560,5 @@ fp_merge_adjacent_available (fp_fragment_t f,
 {
   merge_adjacent_available (f, fe);
 }
+
+#endif /* FRAGPOOL_EXPOSE_INTERNALS */

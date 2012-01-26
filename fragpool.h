@@ -312,6 +312,5 @@ int fp_release (fp_pool_t pool,
  * integrity test fails. */
 int fp_validate (const fp_pool_t pool);
 
-
 #endif /* FRAGPOOL_H_ */
 

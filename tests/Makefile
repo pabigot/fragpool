@@ -1,5 +1,9 @@
-CPPFLAGS = -I..
-OPTCFLAGS = -g
+WITH_COVERAGE ?= 0
+ifeq ($(WITH_COVERAGE),1)
+LDFLAGS += -fprofile-arcs
+endif # WITH_COVERAGE
+
+CPPFLAGS += -I..
 FRAGPOOL_LIB = ../libfragpool.a
 LIBS = $(FRAGPOOL_LIB) -lcunit
 CFLAGS = -Wall -Werror -ansi -std=c99 -pedantic $(CPPFLAGS) $(OPTCFLAGS)
