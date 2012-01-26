@@ -18,6 +18,9 @@ msp430:
 libfragpool.a: $(OBJ)
 	$(AR) rv $@ $^
 
+doc:
+	doxygen
+
 clean:
 	-rm -f $(OBJ)
 	-rm -f *.gcov

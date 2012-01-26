@@ -1,5 +1,71 @@
+/* Copyright (c) 2012, Peter A. Bigot <bigotp@acm.org>
+ * 
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * * Redistributions of source code must retain the above copyright notice,
+ *   this list of conditions and the following disclaimer.
+ * 
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * 
+ * * Neither the name of the software nor the names of its contributors may be
+ *   used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #ifndef FRAGPOOL_H_
 #define FRAGPOOL_H_
+
+/** @file
+ * @mainpage Fragpool: Variable-sized packet memory management for embedded applications
+ *
+ * Fragpool is a memory management infrastructure designed to support
+ * stream-to-packet layer interfaces in memory constrained devices.
+ *
+ * The use case is an embedded system which passes data between a
+ * stream-oriented interface such as a UART and a packet-oriented
+ * interface such as HDLC.  The expectation is that the final length
+ * of a packet is not known at the point where stream reception
+ * starts.  Consequently a system is obliged to allocate a large
+ * buffer.  Once the packet is complete, the data must be passed to
+ * another layer, and the space is not available for new packets that
+ * are received while previous packets are being processed.
+ *
+ * fragpool's fp_request() function allocates a buffer given minimum
+ * and maximum size.  fp_resize() and fp_reallocate() decrease or
+ * increase the size of the reserved space, preserving initial
+ * content.  fp_release() is ultimately invoked to return the buffer.
+ * 
+ * The memory available for allocation and the degree of fragmentation
+ * supported are fixed for the life of the pool, normally at the time
+ * the application is compiled.  Allocation will adjust
+ * caller-provided sizes to maintain pool-defined alignment
+ * constraints.
+ *
+ * All fragpool routines are non-blocking, and are intended to be
+ * callable from hard interrupt context.  Protection against
+ * re-entrancy must be supplied by the caller.
+ *
+ * This code is licensed under BSD-3-Clause.
+ *
+ * @author Peter A. Bigot
+ */
 
 #include <stdint.h>
 
@@ -14,6 +80,8 @@ typedef int16_t fp_ssize_t;
  * value. */
 #define FP_MAX_FRAGMENT_SIZE INT16_MAX
 
+/** The (positive) value of the error code returned when a fragpool
+ * function is invoked with unacceptable parameters. */
 #define FP_EINVAL 1
 
 /** Bookkeeping for a fragment within the pool.
@@ -47,7 +115,7 @@ typedef struct fp_fragment_t {
  * structure that defines the fragment array to the correct size.  An
  * example of how to accomplish this while still using the generic
  * type for reference to the pool is:
-
+@verbatim
 static uint8_t pool_data[POOL_SIZE];
 static union {
   struct {
@@ -63,7 +131,7 @@ static union {
   }
 };
 fp_pool_t const pool = &pool_union.generic;
-
+@endverbatim
  */
 #define FP_POOL_STRUCT_COMMON()						\
   /** The address of the start of the pool */				\
@@ -103,20 +171,25 @@ typedef struct fp_pool_t {
   struct fp_fragment_t fragment[];
 } *fp_pool_t;
 
-/**  Reset the pool.  All memory is assigned to a single fragment
- * which is marked unallocated. */
+/**  Reset the pool.
+ *
+ * All memory is assigned to a single fragment which is marked
+ * unallocated.
+ *
+ * @param pool the pool to be validated
+ */
 void fp_reset (fp_pool_t pool);
 
 /** Obtain a block of memory from the pool.
  *
  * A block of memory of at least min_size octets is allocated from the
- * pool and returned to the caller.  The value pointed to by
+ * pool and returned to the caller.  The value pointed to by @p
  * fragment_endp is updated to reflect the first byte past the end of
  * the allocated region.  The "best" available fragment is selected
- * taking into account the required min_size and the desired max_size.
- * If the requested maximum size is larger than the selected fragment
- * and there are slots available, the remainder is split off as a new
- * available fragment.
+ * taking into account the required @p min_size and the desired @p
+ * max_size.  If the requested maximum size is larger than the
+ * selected fragment and there are slots available, the remainder is
+ * split off as a new available fragment.
  * 
  * @param pool the pool from which memory is obtained
  * 
@@ -124,10 +197,10 @@ void fp_reset (fp_pool_t pool);
  * This is increased if necessary to satisfy the pool alignment
  * requirements.
  * 
- * @param max_size the maximum size usable fragment, in bytes.  This
- * is increased if necessary to satisfy the pool alignment
- * requirements.  Use FP_MAX_FRAGMENT_SIZE to get the largest
- * available fragment.
+ * @param max_size the maximum size desired for the fragment, in
+ * bytes.  This is increased if necessary to satisfy the pool
+ * alignment requirements.  Use @c FP_MAX_FRAGMENT_SIZE to get the
+ * largest available fragment.
  * 
  * @param fragment_endp where to store the end of the fragment
  * 
@@ -151,25 +224,26 @@ uint8_t* fp_request (fp_pool_t pool,
  * may be extended even if the requested new size cannot be satisfied.
  * 
  * The resize will not move any data.  The caller is responsible for
- * checking *fragment_endp to determine the effect of the resize.
+ * checking @c *fragment_endp to determine the effect of
+ * the resize.
  * 
- * @param pool the pool from which bp was allocated
+ * @param pool the pool from which @p bp was allocated
  * 
- * @param bp the start of an allocated block returned by fp_request,
- * fp_resize, or fp_reallocate.
+ * @param bp the start of an allocated block returned by fp_request(),
+ * fp_resize(), or fp_reallocate().
  * 
  * @param new_size the new desired size for the fragment, in bytes.
  * This is increased if necessary to satisfy the pool alignment
- * requirements.  Use FP_MAX_FRAGMENT_SIZE to get the largest
+ * requirements.  Use @c FP_MAX_FRAGMENT_SIZE to get the largest
  * available fragment.
  * 
  * @param fragment_endp where to store the end of the fragment
  *
- * @return fp if the resize succeeded, or a null pointer if an invalid
- * fragment or pool address was provided.  In either case, the
- * new_size octets beginning at fp are unchanged.  *fragment_endp is
- * updated to reflect the end of the fragment, whether the resize
- * succeeded or failed.
+ * @return @p bp if the resize succeeded, or a null pointer if an
+ * invalid fragment or pool address was provided.  In either case, the
+ * @p new_size octets beginning at @p bp are unchanged.  @c
+ * *fragment_endp is updated to reflect the end of the fragment,
+ * whether the resize succeeded or failed.
  */
 uint8_t* fp_resize (fp_pool_t pool,
 		    uint8_t* bp,
@@ -189,24 +263,26 @@ uint8_t* fp_resize (fp_pool_t pool,
  * If no satisfactory fragment can be found, the function returns a
  * null pointer, but the existing fragment is not affected.
  * 
- * @param pool the pool from which bp was allocated
+ * @param pool the pool from which @p bp was allocated
  * 
- * @param bp the start of an allocated block returned by fp_request,
- * fp_resize, or fp_reallocate.
+ * @param bp the start of an allocated block returned by fp_request(),
+ * fp_resize(), or fp_reallocate().
  * 
  * @param min_size the minimum acceptable size for a new fragment.  Up
  * to this many octets from the existing fragment are copied if the
  * new fragment begins at a different location.  The current fragment
- * may be smaller than this size.  For the purposes of determining a
- * new location the value is increased to satisfy the pool alignment,
- * but the provided value is used when preserving the buffer contents.
+ * may be smaller or larger than this size.  For the purposes of
+ * determining a new location the value is increased to satisfy the
+ * pool alignment, but the provided value is used when preserving the
+ * buffer contents.
  * 
- * @param new_size the new desired size for the fragment, in bytes.
- * This is increased if necessary to satisfy the pool alignment
- * requirements.  Use FP_MAX_FRAGMENT_SIZE to get the largest
- * available fragment.
+ * @param max_size the maximum size desired for the fragment, in
+ * bytes.  This is increased if necessary to satisfy the pool
+ * alignment requirements.  Use @c FP_MAX_FRAGMENT_SIZE to get the
+ * largest available fragment.
  * 
- * @param fragment_endp where to store the end of the fragment
+ * @param fragment_endp where to store the end of the fragment.  The
+ * stored value is unchanged if the call returns @c NULL.
  *
  * @return a pointer to the start of the returned region, or a null
  * pointer if the allocation cannot be satisfied. */
@@ -220,16 +296,20 @@ uint8_t* fp_reallocate (fp_pool_t pool,
  *
  * @param pool the pool from which bp was allocated
  * 
- * @param bp the start of an allocated block returned by fp_request,
- * fp_resize, or fp_reallocate.
+ * @param bp the start of an allocated block returned by fp_request(),
+ * fp_resize(), or fp_reallocate().
  * 
- * @return zero if the block is released, or an error code if bp is
+ * @return zero if the block is released, or an error code if @p bp is
  * invalid. */
 int fp_release (fp_pool_t pool,
 		uint8_t* bp);
 
-/** Verify the integrity of the pool.  Return 0 if the pool is valid,
- * or an internal error code if an integrity test fails. */
+/** Verify the integrity of the pool.
+ *
+ * @param pool the pool to be validated
+ *
+ * @return zero if the pool is valid, or an internal error code if an
+ * integrity test fails. */
 int fp_validate (const fp_pool_t pool);
 
 
