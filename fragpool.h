@@ -69,6 +69,9 @@
 
 #include <stdint.h>
 
+/** A integral monotonically increasing version number */
+#define FP_VERSION 20120126
+
 /** A fragment size */
 typedef uint16_t fp_size_t;
 
