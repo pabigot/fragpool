@@ -1,21 +1,21 @@
 /* Copyright (c) 2012, Peter A. Bigot <bigotp@acm.org>
- * 
+ *
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * * Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * 
+ *
  * * Redistributions in binary form must reproduce the above copyright notice,
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * 
+ *
  * * Neither the name of the software nor the names of its contributors may be
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -51,7 +51,7 @@
  * and maximum size.  fp_resize() and fp_reallocate() decrease or
  * increase the size of the reserved space, preserving initial
  * content.  fp_release() is ultimately invoked to return the buffer.
- * 
+ *
  * The memory available for allocation and the degree of fragmentation
  * supported are fixed for the life of the pool, normally at the time
  * the application is compiled.  Allocation will adjust
@@ -154,7 +154,7 @@ typedef struct fp_fragment_t {
   uint8_t fragment_count
 
 /** Bookkeeping for a fragment pool.
- * 
+ *
  * @warning The only reason you get to see the internals is because
  * this is C and we need to statically allocate pools in user code.
  * You don't get to inspect or mutate the fields of this structure, so
@@ -193,20 +193,20 @@ void fp_reset (fp_pool_t pool);
  * max_size.  If the requested maximum size is larger than the
  * selected fragment and there are slots available, the remainder is
  * split off as a new available fragment.
- * 
+ *
  * @param pool the pool from which memory is obtained
- * 
+ *
  * @param min_size the minimum size acceptable fragment, in bytes.
  * This is increased if necessary to satisfy the pool alignment
  * requirements.
- * 
+ *
  * @param max_size the maximum size desired for the fragment, in
  * bytes.  This is increased if necessary to satisfy the pool
  * alignment requirements.  Use @c FP_MAX_FRAGMENT_SIZE to get the
  * largest available fragment.
- * 
+ *
  * @param fragment_endp where to store the end of the fragment
- * 
+ *
  * @return a pointer to the start of the returned region, or a null
  * pointer if the allocation cannot be satisfied.  */
 uint8_t* fp_request (fp_pool_t pool,
@@ -225,21 +225,21 @@ uint8_t* fp_request (fp_pool_t pool,
  * If the new size is larger and the following fragment is available,
  * the fragment will be extended to be no longer than new_size.  It
  * may be extended even if the requested new size cannot be satisfied.
- * 
+ *
  * The resize will not move any data.  The caller is responsible for
  * checking @c *fragment_endp to determine the effect of
  * the resize.
- * 
+ *
  * @param pool the pool from which @p bp was allocated
- * 
+ *
  * @param bp the start of an allocated block returned by fp_request(),
  * fp_resize(), or fp_reallocate().
- * 
+ *
  * @param new_size the new desired size for the fragment, in bytes.
  * This is increased if necessary to satisfy the pool alignment
  * requirements.  Use @c FP_MAX_FRAGMENT_SIZE to get the largest
  * available fragment.
- * 
+ *
  * @param fragment_endp where to store the end of the fragment
  *
  * @return @p bp if the resize succeeded, or a null pointer if an
@@ -265,12 +265,12 @@ uint8_t* fp_resize (fp_pool_t pool,
  *
  * If no satisfactory fragment can be found, the function returns a
  * null pointer, but the existing fragment is not affected.
- * 
+ *
  * @param pool the pool from which @p bp was allocated
- * 
+ *
  * @param bp the start of an allocated block returned by fp_request(),
  * fp_resize(), or fp_reallocate().
- * 
+ *
  * @param min_size the minimum acceptable size for a new fragment.  Up
  * to this many octets from the existing fragment are copied if the
  * new fragment begins at a different location.  The current fragment
@@ -278,12 +278,12 @@ uint8_t* fp_resize (fp_pool_t pool,
  * determining a new location the value is increased to satisfy the
  * pool alignment, but the provided value is used when preserving the
  * buffer contents.
- * 
+ *
  * @param max_size the maximum size desired for the fragment, in
  * bytes.  This is increased if necessary to satisfy the pool
  * alignment requirements.  Use @c FP_MAX_FRAGMENT_SIZE to get the
  * largest available fragment.
- * 
+ *
  * @param fragment_endp where to store the end of the fragment.  The
  * stored value is unchanged if the call returns @c NULL.
  *
@@ -298,14 +298,14 @@ uint8_t* fp_reallocate (fp_pool_t pool,
 /** Release a block of memory to the pool.
  *
  * @param pool the pool from which bp was allocated
- * 
+ *
  * @param bp the start of an allocated block returned by fp_request(),
  * fp_resize(), or fp_reallocate().
- * 
+ *
  * @return zero if the block is released, or an error code if @p bp is
  * invalid. */
 int fp_release (fp_pool_t pool,
-		uint8_t* bp);
+                uint8_t* bp);
 
 /** Verify the integrity of the pool.
  *

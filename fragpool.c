@@ -1,22 +1,22 @@
 /*
  * Copyright (c) 2012, Peter A. Bigot <bigotp@acm.org>
- * 
+ *
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * * Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * 
+ *
  * * Redistributions in binary form must reproduce the above copyright notice,
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * 
+ *
  * * Neither the name of the software nor the names of its contributors may be
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -99,7 +99,7 @@ get_fragment (fp_pool_t p,
     && ((_cur_len) < (_max_size)))                      \
    || (((_new_len) < (_cur_len))                        \
        && ((_new_len) >= (_max_size))))
-       
+
 /** Locate the best available fragment to use for the given allocation.
  *
  * Satisfactory fragments must be available and have at least min_size octets.
@@ -110,9 +110,9 @@ get_fragment (fp_pool_t p,
  * necessary.
  *
  * @param pool the pool from which memory is obtained
- * 
+ *
  * @param min_size the minimum size acceptable fragment
- * 
+ *
  * @param max_size the maximum size usable fragment
  *
  * @return the pointer to the best fragment, or a null pointer if no
@@ -189,13 +189,13 @@ release_suffix (fp_fragment_t f,
  * needed, attempt to release the suffix for separate allocation.
  *
  * @param p the pool being manipulated
- * 
+ *
  * @param f an available fragment, to be switched to allocated mode
  *
  * @param max_size the maximum size usable fragment
- * 
+ *
  * @param fragment_endp where to store the end of the fragment
- * 
+ *
  * @return a pointer to the start of the returned region, or a null
  * pointer if the allocation cannot be satisfied.  */
 static uint8_t*
@@ -206,7 +206,7 @@ complete_allocation (fp_pool_t p,
 {
   const fp_fragment_t fe = p->fragment + p->fragment_count;
   fp_size_t flen = f->length;
-  
+
   f->length = -f->length;
   if (((f+1) < fe) && (FP_MAX_FRAGMENT_SIZE != max_size)) {
     max_size = align_size_up(p, max_size);
@@ -217,13 +217,13 @@ complete_allocation (fp_pool_t p,
   *fragment_endp = f->start - f->length;
   return f->start;
 }
-                     
+
 /** Extend the space of the provided fragment (allocated or available)
  * by the following fragment, which is then eliminated.
  *
  * @param f is a fragment (either allocated or available), and the
  * next fragment is available.
- * 
+ *
  * @param fe is the end of the fragment array
  */
 static void
@@ -281,7 +281,7 @@ fp_release (fp_pool_t p,
   fp_fragment_t f = get_fragment(p, bp);
   fp_fragment_t nf;
   const fp_fragment_t fe = p->fragment + p->fragment_count;
-  
+
   if ((NULL == f) || (! FRAGMENT_IS_ALLOCATED(f))) {
     return FP_EINVAL;
   }
@@ -305,7 +305,7 @@ fp_resize (fp_pool_t p,
   fp_fragment_t f = get_fragment(p, bp);
   fp_fragment_t fe = p->fragment + p->fragment_count;
   fp_fragment_t nf;
-  
+
   if ((NULL == f) || (!FRAGMENT_IS_ALLOCATED(f))) {
     return NULL;
   }
@@ -393,7 +393,7 @@ fp_reallocate (fp_pool_t p,
      * the current fragment as a single fragment */
     do {
       fp_ssize_t flen = xf->length;
-      
+
       if (xf == frs) {
         flen = frlen;
       }
@@ -408,7 +408,7 @@ fp_reallocate (fp_pool_t p,
       }
     } while (++xf < fe);
   }
-  
+
   /* If nothing can satisfy the minimum, fail. */
   if (NULL == bf) {
     return NULL;

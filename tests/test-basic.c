@@ -9,8 +9,14 @@
 #define FRAGMENT_IS_AVAILABLE(_f) (0 < (_f)->length)
 #define FRAGMENT_IS_INACTIVE(_f) (0 == (_f)->length)
 
-int init_suite (void) { return 0; }
-int clean_suite (void) { return 0; }
+int init_suite (void)
+{
+  return 0;
+}
+int clean_suite (void)
+{
+  return 0;
+}
 
 #define POOL_SIZE 256
 #define POOL_FRAGMENTS 6
@@ -188,7 +194,7 @@ execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
         int max_size = va_arg(ap, int);
         uint8_t* b;
         uint8_t* be;
-      
+
         printf("\tallocate %u..%u ... ", min_size, max_size);
         b = fp_request(p, min_size, max_size, &be);
         if (NULL != b) {
@@ -213,7 +219,7 @@ execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
         int fi = va_arg(ap, int);
         int len = p->fragment[fi].length;
         int expected_len = va_arg(ap, int);
-      
+
         printf("\tchecking fragment %u length %d ... ", fi, len);
         if (expected_len == len) {
           printf("as expected\n");
@@ -287,7 +293,7 @@ execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
       }
       case PO_DISPLAY_POOL: {     /* display pool: PO_DISPLAY_POOL */
         int fi;
-      
+
         printf("\tPool %p with %u fragments and %u bytes from %p to %p:\n",
                (void*)p, p->fragment_count, (fp_size_t)(p->pool_end-p->pool_start),
                p->pool_start, p->pool_end);
@@ -295,7 +301,7 @@ execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
           fp_fragment_t f = p->fragment + fi;
           uint8_t* b = f->start;
           uint8_t* be = f->start + abs(f->length);
-        
+
           printf("\t\t%u: ", fi);
           if (FRAGMENT_IS_INACTIVE(f)) {
             printf("inactive fragment\n");
@@ -521,7 +527,7 @@ test_fp_get_fragment ()
   CU_ASSERT_PTR_EQUAL(f+2, fp_get_fragment(p, f[2].start));
   CU_ASSERT_PTR_NULL(fp_get_fragment(p, f->start+32));
 }
-  
+
 void
 test_fp_release_params ()
 {
@@ -835,7 +841,7 @@ test_execute_reallocate ()
 {
   uint8_t* b;
   uint8_t* be;
-  
+
   /* Extend into following fragment */
   execute_pool_ops(pool, __FILE__, __LINE__,
                    PO_RESET,
@@ -1057,7 +1063,7 @@ test_pool_alignment ()
                    PO_CHECK_FRAGMENT_LENGTH, 1, 2,
                    PO_CHECK_FRAGMENT_LENGTH, 2, -10,
                    PO_END_COMMANDS);
-  
+
   /* Verify reallocation shift down */
   execute_pool_ops(p, __FILE__, __LINE__,
                    PO_RESET,
@@ -1115,7 +1121,7 @@ main (int argc,
   };
   const int ntests = sizeof(tests) / sizeof(*tests);
   int i;
-  
+
   (void)show_pool;
   (void)show_short_pool;
   (void)release_fragments;
@@ -1142,9 +1148,9 @@ main (int argc,
   printf("Running tests\n");
   CU_basic_set_mode(CU_BRM_VERBOSE);
   CU_basic_run_tests();
-  
- done_registry:
+
+done_registry:
   CU_cleanup_registry();
-  
+
   return CU_get_error();
 }
