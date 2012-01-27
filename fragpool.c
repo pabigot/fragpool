@@ -40,7 +40,7 @@
 
 static inline
 uint8_t* align_pointer_up (fp_pool_t p,
-			   uint8_t* b)
+                           uint8_t* b)
 {
   uintptr_t bi = (uintptr_t)b;
   bi = (bi + p->pool_alignment - 1) & ~(uintptr_t)(p->pool_alignment - 1);
@@ -49,7 +49,7 @@ uint8_t* align_pointer_up (fp_pool_t p,
 
 static inline
 uint8_t* align_pointer_down (fp_pool_t p,
-			     uint8_t* b)
+                             uint8_t* b)
 {
   uintptr_t bi = (uintptr_t)b;
   bi &= ~(uintptr_t)(p->pool_alignment - 1);
@@ -58,7 +58,7 @@ uint8_t* align_pointer_down (fp_pool_t p,
 
 static inline
 fp_ssize_t align_size_up (fp_pool_t p,
-			  fp_ssize_t s)
+                          fp_ssize_t s)
 {
   fp_size_t us = abs(s);
   us = (us + p->pool_alignment - 1) & ~(fp_size_t)(p->pool_alignment - 1);
@@ -67,7 +67,7 @@ fp_ssize_t align_size_up (fp_pool_t p,
 
 static inline
 fp_ssize_t align_size_down (fp_pool_t p,
-			    fp_ssize_t s)
+                            fp_ssize_t s)
 {
   fp_size_t us = abs(s);
   us &= ~(fp_size_t)(p->pool_alignment - 1);
@@ -78,7 +78,7 @@ fp_ssize_t align_size_down (fp_pool_t p,
  * pointer within the pool. */
 static fp_fragment_t
 get_fragment (fp_pool_t p,
-	      uint8_t* bp)
+              uint8_t* bp)
 {
   fp_fragment_t f = p->fragment;
   fp_fragment_t fe = f + p->fragment_count;
@@ -94,10 +94,10 @@ get_fragment (fp_pool_t p,
  * current candidate and the candidate isn't at least the maximum
  * desired size, or it's shorter than the current candidate while
  * still being at least the maximum desired size. */
-#define PREFER_NEW_SIZE(_new_len, _cur_len, _max_size)	\
-  ((((_new_len) > (_cur_len))				\
-    && ((_cur_len) < (_max_size)))			\
-   || (((_new_len) < (_cur_len))			\
+#define PREFER_NEW_SIZE(_new_len, _cur_len, _max_size)  \
+  ((((_new_len) > (_cur_len))                           \
+    && ((_cur_len) < (_max_size)))                      \
+   || (((_new_len) < (_cur_len))                        \
        && ((_new_len) >= (_max_size))))
        
 /** Locate the best available fragment to use for the given allocation.
@@ -120,8 +120,8 @@ get_fragment (fp_pool_t p,
  */
 static fp_fragment_t
 find_best_fragment (fp_pool_t p,
-		    fp_size_t min_size,
-		    fp_size_t max_size)
+                    fp_size_t min_size,
+                    fp_size_t max_size)
 {
   fp_fragment_t f = p->fragment;
   const fp_fragment_t fe = f + p->fragment_count;
@@ -134,7 +134,7 @@ find_best_fragment (fp_pool_t p,
       /* Replace if we have no best fragment, or we like the new one
        * better. */
       if ((NULL == bf) || PREFER_NEW_SIZE(f->length, bf->length, max_size)) {
-	bf = f;
+        bf = f;
       }
     }
   } while (++f < fe);
@@ -154,8 +154,8 @@ find_best_fragment (fp_pool_t p,
  */
 static void
 release_suffix (fp_fragment_t f,
-		fp_fragment_t fe,
-		fp_size_t excess)
+                fp_fragment_t fe,
+                fp_size_t excess)
 {
   fp_fragment_t nf = f+1;
 
@@ -176,7 +176,7 @@ release_suffix (fp_fragment_t f,
     }
     if (nf < fe) {
       do {
-	nf[0] = nf[-1];
+        nf[0] = nf[-1];
       } while (--nf > f);
       f[0].length += excess;
       f[1].start = f[0].start - f[0].length;
@@ -200,9 +200,9 @@ release_suffix (fp_fragment_t f,
  * pointer if the allocation cannot be satisfied.  */
 static uint8_t*
 complete_allocation (fp_pool_t p,
-		     fp_fragment_t f,
-		     fp_size_t max_size,
-		     uint8_t** fragment_endp)
+                     fp_fragment_t f,
+                     fp_size_t max_size,
+                     uint8_t** fragment_endp)
 {
   const fp_fragment_t fe = p->fragment + p->fragment_count;
   fp_size_t flen = f->length;
@@ -217,7 +217,7 @@ complete_allocation (fp_pool_t p,
   *fragment_endp = f->start - f->length;
   return f->start;
 }
-		     
+                     
 /** Extend the space of the provided fragment (allocated or available)
  * by the following fragment, which is then eliminated.
  *
@@ -228,7 +228,7 @@ complete_allocation (fp_pool_t p,
  */
 static void
 merge_adjacent_available (fp_fragment_t f,
-			  fp_fragment_t fe)
+                          fp_fragment_t fe)
 {
   fp_fragment_t nf = f+1;
 
@@ -253,9 +253,9 @@ fp_reset (fp_pool_t p)
 
 uint8_t*
 fp_request (fp_pool_t p,
-	    fp_size_t min_size,
-	    fp_size_t max_size,
-	    uint8_t** fragment_endp)
+            fp_size_t min_size,
+            fp_size_t max_size,
+            uint8_t** fragment_endp)
 {
   fp_fragment_t f;
 
@@ -276,7 +276,7 @@ fp_request (fp_pool_t p,
 
 int
 fp_release (fp_pool_t p,
-	    uint8_t* bp)
+            uint8_t* bp)
 {
   fp_fragment_t f = get_fragment(p, bp);
   fp_fragment_t nf;
@@ -298,9 +298,9 @@ fp_release (fp_pool_t p,
 
 uint8_t*
 fp_resize (fp_pool_t p,
-	   uint8_t* bp,
-	   fp_size_t new_size,
-	   uint8_t** fragment_endp)
+           uint8_t* bp,
+           fp_size_t new_size,
+           uint8_t** fragment_endp)
 {
   fp_fragment_t f = get_fragment(p, bp);
   fp_fragment_t fe = p->fragment + p->fragment_count;
@@ -314,26 +314,26 @@ fp_resize (fp_pool_t p,
     fp_size_t cur_size = - f->length;
     if (FP_MAX_FRAGMENT_SIZE == new_size) {
       if (FRAGMENT_IS_AVAILABLE(nf)) {
-	merge_adjacent_available(f, fe);
+        merge_adjacent_available(f, fe);
       }
     } else {
       new_size = align_size_up(p, new_size);
       if (new_size < cur_size) {
-	/* Give back, if possible */
-	release_suffix(f, p->fragment + p->fragment_count, cur_size - new_size);
+        /* Give back, if possible */
+        release_suffix(f, p->fragment + p->fragment_count, cur_size - new_size);
       } else if (new_size > cur_size) {
-	/* Extend to following fragment? */
-	if (FRAGMENT_IS_AVAILABLE(nf)) {
-	  fp_size_t lacking = new_size - cur_size;
-	  if (nf->length > lacking) {
-	    /* More available than needed; take only what's requested */
-	    nf->start += lacking;
-	    nf->length -= lacking;
-	    f->length -= lacking;
-	  } else {
-	    merge_adjacent_available(f, fe);
-	  }
-	}
+        /* Extend to following fragment? */
+        if (FRAGMENT_IS_AVAILABLE(nf)) {
+          fp_size_t lacking = new_size - cur_size;
+          if (nf->length > lacking) {
+            /* More available than needed; take only what's requested */
+            nf->start += lacking;
+            nf->length -= lacking;
+            f->length -= lacking;
+          } else {
+            merge_adjacent_available(f, fe);
+          }
+        }
       }
     }
   }
@@ -343,10 +343,10 @@ fp_resize (fp_pool_t p,
 
 uint8_t*
 fp_reallocate (fp_pool_t p,
-	       uint8_t* bp,
-	       fp_size_t min_size,
-	       fp_size_t max_size,
-	       uint8_t** fragment_endp)
+               uint8_t* bp,
+               fp_size_t min_size,
+               fp_size_t max_size,
+               uint8_t** fragment_endp)
 {
   fp_fragment_t f = get_fragment(p, bp);
   fp_fragment_t frs;
@@ -395,16 +395,16 @@ fp_reallocate (fp_pool_t p,
       fp_ssize_t flen = xf->length;
       
       if (xf == frs) {
-	flen = frlen;
+        flen = frlen;
       }
       if (min_size <= flen) {
-	if ((NULL == bf) || PREFER_NEW_SIZE(flen, bflen, max_size)) {
-	  bf = xf;
-	  bflen = flen;
-	}
+        if ((NULL == bf) || PREFER_NEW_SIZE(flen, bflen, max_size)) {
+          bf = xf;
+          bflen = flen;
+        }
       }
       if (xf == frs) {
-	xf = fre;
+        xf = fre;
       }
     } while (++xf < fe);
   }
@@ -442,7 +442,7 @@ fp_reallocate (fp_pool_t p,
     *fragment_endp = frs->start + new_len;
     if (ffrs_len == new_len) {
       while ((++f < fe) && (! FRAGMENT_IS_INACTIVE(f))) {
-	f[-1] = f[0];
+        f[-1] = f[0];
       }
       f[-1].length = 0;
     } else {
@@ -505,13 +505,13 @@ fp_validate (fp_pool_t p)
     }
     /* Fragment length must satisfy alignment */
     if ((f->length != align_size_up(p, f->length))
-	|| (f->length != align_size_down(p, f->length))) {
+        || (f->length != align_size_down(p, f->length))) {
       return FPVal_FragmentLengthUnaligned;
     }
     if (NULL != lf) {
       /* Adjacent available fragments should have been merged. */
       if (FRAGMENT_IS_AVAILABLE(lf) && FRAGMENT_IS_AVAILABLE(f)) {
-	return FPVal_FragmentUnmerged;
+        return FPVal_FragmentUnmerged;
       }
     }
     lf = f;
@@ -540,7 +540,7 @@ fp_validate (fp_pool_t p)
 
 fp_fragment_t
 fp_get_fragment (fp_pool_t p,
-		 uint8_t* bp)
+                 uint8_t* bp)
 {
   return get_fragment(p, bp);
 }
@@ -548,15 +548,15 @@ fp_get_fragment (fp_pool_t p,
 
 fp_fragment_t
 fp_find_best_fragment (fp_pool_t p,
-		       fp_size_t min_size,
-		       fp_size_t max_size)
+                       fp_size_t min_size,
+                       fp_size_t max_size)
 {
   return find_best_fragment(p, min_size, max_size);
 }
 
 void
 fp_merge_adjacent_available (fp_fragment_t f,
-			     fp_fragment_t fe)
+                             fp_fragment_t fe)
 {
   merge_adjacent_available (f, fe);
 }

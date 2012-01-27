@@ -118,39 +118,39 @@ typedef struct fp_fragment_t {
  * structure that defines the fragment array to the correct size.  An
  * example of how to accomplish this while still using the generic
  * type for reference to the pool is:
-@verbatim
-static uint8_t pool_data[POOL_SIZE];
-static union {
-  struct {
-    FP_POOL_STRUCT_COMMON();
-    struct fp_fragment_t fragment[POOL_FRAGMENTS];
-  } fixed;
-  struct fp_pool_t generic;
-} pool_union = {
-  .generic = {
-    .pool_start = pool_data,
-    .pool_end = pool_data + sizeof(pool_data),
-    .fragment_count = POOL_FRAGMENTS
-  }
-};
-fp_pool_t const pool = &pool_union.generic;
-@endverbatim
- */
-#define FP_POOL_STRUCT_COMMON()						\
-  /** The address of the start of the pool */				\
-  uint8_t* pool_start;							\
-									\
-  /** The address past the end of the pool.  The number of octets in	\
-   * the pool is (pool_end-pool_start). */				\
-  uint8_t* pool_end;							\
-									\
-  /** The alignment of the fragments, in bytes.  E.g., a value of 2	\
-   * ensures addresses are 16-bit aligned; a value of 4 ensures		\
-   * addresses are 32-bit aligned.  Value must be a nonzero power of	\
-   * two. */								\
-  uint8_t pool_alignment;						\
-									\
-  /** The number of fragments supported by the pool */			\
+ @verbatim
+ static uint8_t pool_data[POOL_SIZE];
+ static union {
+ struct {
+ FP_POOL_STRUCT_COMMON();
+ struct fp_fragment_t fragment[POOL_FRAGMENTS];
+ } fixed;
+ struct fp_pool_t generic;
+ } pool_union = {
+ .generic = {
+ .pool_start = pool_data,
+ .pool_end = pool_data + sizeof(pool_data),
+ .fragment_count = POOL_FRAGMENTS
+ }
+ };
+ fp_pool_t const pool = &pool_union.generic;
+ @endverbatim
+*/
+#define FP_POOL_STRUCT_COMMON()                                         \
+  /** The address of the start of the pool */                           \
+  uint8_t* pool_start;                                                  \
+                                                                        \
+  /** The address past the end of the pool.  The number of octets in    \
+   * the pool is (pool_end-pool_start). */                              \
+  uint8_t* pool_end;                                                    \
+                                                                        \
+  /** The alignment of the fragments, in bytes.  E.g., a value of 2     \
+   * ensures addresses are 16-bit aligned; a value of 4 ensures         \
+   * addresses are 32-bit aligned.  Value must be a nonzero power of    \
+   * two. */                                                            \
+  uint8_t pool_alignment;                                               \
+                                                                        \
+  /** The number of fragments supported by the pool */                  \
   uint8_t fragment_count
 
 /** Bookkeeping for a fragment pool.
@@ -210,9 +210,9 @@ void fp_reset (fp_pool_t pool);
  * @return a pointer to the start of the returned region, or a null
  * pointer if the allocation cannot be satisfied.  */
 uint8_t* fp_request (fp_pool_t pool,
-		     fp_size_t min_size,
-		     fp_size_t max_size,
-		     uint8_t** fragment_endp);
+                     fp_size_t min_size,
+                     fp_size_t max_size,
+                     uint8_t** fragment_endp);
 
 /** Attempt to resize a fragment in-place.
  *
@@ -249,9 +249,9 @@ uint8_t* fp_request (fp_pool_t pool,
  * whether the resize succeeded or failed.
  */
 uint8_t* fp_resize (fp_pool_t pool,
-		    uint8_t* bp,
-		    fp_size_t new_size,
-		    uint8_t** fragment_endp);
+                    uint8_t* bp,
+                    fp_size_t new_size,
+                    uint8_t** fragment_endp);
 
 /** Attempt to resize a fragment allowing moves.
  *
@@ -290,10 +290,10 @@ uint8_t* fp_resize (fp_pool_t pool,
  * @return a pointer to the start of the returned region, or a null
  * pointer if the allocation cannot be satisfied. */
 uint8_t* fp_reallocate (fp_pool_t pool,
-			uint8_t* bp,
-			fp_size_t min_size,
-			fp_size_t max_size,
-			uint8_t** fragment_endp);
+                        uint8_t* bp,
+                        fp_size_t min_size,
+                        fp_size_t max_size,
+                        uint8_t** fragment_endp);
 
 /** Release a block of memory to the pool.
  *
@@ -316,4 +316,3 @@ int fp_release (fp_pool_t pool,
 int fp_validate (const fp_pool_t pool);
 
 #endif /* FRAGPOOL_H_ */
-

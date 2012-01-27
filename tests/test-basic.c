@@ -51,7 +51,7 @@ fp_pool_t const apool = &apool_union.generic;
 
 static void
 show_fragments (fp_fragment_t f,
-		fp_fragment_t fe)
+                fp_fragment_t fe)
 {
   do {
     if (FRAGMENT_IS_ALLOCATED(f)) {
@@ -70,8 +70,8 @@ show_pool (fp_pool_t p)
   fp_fragment_t f = p->fragment;
   const fp_fragment_t fe = f + p->fragment_count;
   printf("Pool %p with %u fragments and %u bytes from %p to %p:\n",
-	 (void*)p, p->fragment_count, (fp_size_t)(p->pool_end-p->pool_start),
-	 p->pool_start, p->pool_end);
+         (void*)p, p->fragment_count, (fp_size_t)(p->pool_end-p->pool_start),
+         p->pool_start, p->pool_end);
   show_fragments(f, fe);
 }
 
@@ -83,14 +83,19 @@ show_short_pool (fp_pool_t p)
     printf(" %d@%u", p->fragment[fi].length, fi);
   }
 }
-#define SHOW_SHORT_POOL(_p) do { printf(__FILE__ ":%u:", __LINE__); show_short_pool(_p); putchar('\n'); } while (0)
 
-#define CU_ASSERT_POOL_IS_RESET(_p) do {				\
-    CU_ASSERT_EQUAL(p->fragment[0].start, p->pool_start);		\
-    CU_ASSERT_EQUAL(p->fragment[0].length, (p->pool_end - p->pool_start)); \
-    CU_ASSERT_EQUAL(0, fp_validate(_p));				\
+#define SHOW_SHORT_POOL(_p) do {                \
+    printf(__FILE__ ":%u:", __LINE__);          \
+    show_short_pool(_p);                        \
+    putchar('\n');                              \
   } while (0)
-  							  \
+
+#define CU_ASSERT_POOL_IS_RESET(_p) do {                                \
+    CU_ASSERT_EQUAL(p->fragment[0].start, p->pool_start);               \
+    CU_ASSERT_EQUAL(p->fragment[0].length, (p->pool_end - p->pool_start)); \
+    CU_ASSERT_EQUAL(0, fp_validate(_p));                                \
+  } while (0)
+
 static void
 config_pool (fp_pool_t p, ...)
 {
@@ -165,202 +170,202 @@ execute_pool_ops (fp_pool_t p, const char* file, int lineno, ...)
 
   va_start(ap, lineno);
   printf("\n%s:%u Executing commands on pool %p with %u fragments and total size %u:\n",
-	 file, lineno,
-	 (void*)p, p->fragment_count, (unsigned int)(p->pool_end-p->pool_start));
+         file, lineno,
+         (void*)p, p->fragment_count, (unsigned int)(p->pool_end-p->pool_start));
   printf("initial state:");
   show_short_pool(p);
   putchar('\n');
   while (PO_END_COMMANDS != ((cmd = va_arg(ap,int)))) {
     switch (cmd) {
-    case PO_RESET: { 		/* reset: PO_RESET */
-      printf("\treset pool\n");
-      fp_reset(p);
-      memset(p->pool_start, '?', p->pool_end - p->pool_start);
-      break;
-    }
-    case PO_ALLOCATE: {	 /* allocate: PO_ALLOCATE min_size max_size */
-      int min_size = va_arg(ap, int);
-      int max_size = va_arg(ap, int);
-      uint8_t* b;
-      uint8_t* be;
+      case PO_RESET: {            /* reset: PO_RESET */
+        printf("\treset pool\n");
+        fp_reset(p);
+        memset(p->pool_start, '?', p->pool_end - p->pool_start);
+        break;
+      }
+      case PO_ALLOCATE: {  /* allocate: PO_ALLOCATE min_size max_size */
+        int min_size = va_arg(ap, int);
+        int max_size = va_arg(ap, int);
+        uint8_t* b;
+        uint8_t* be;
       
-      printf("\tallocate %u..%u ... ", min_size, max_size);
-      b = fp_request(p, min_size, max_size, &be);
-      if (NULL != b) {
-	fp_fragment_t f = fp_get_fragment(p, b);
-	printf("produced %p len %u\n", b, (unsigned int)(be-b));
-	memset(b, '0' + (f - p->fragment), be-b);
-      } else {
-	printf("failed\n");
+        printf("\tallocate %u..%u ... ", min_size, max_size);
+        b = fp_request(p, min_size, max_size, &be);
+        if (NULL != b) {
+          fp_fragment_t f = fp_get_fragment(p, b);
+          printf("produced %p len %u\n", b, (unsigned int)(be-b));
+          memset(b, '0' + (f - p->fragment), be-b);
+        } else {
+          printf("failed\n");
+        }
+        break;
       }
-      break;
-    }
-    case PO_RELEASE: {	      /* release: PO_RELEASE fragment_index */
-      int fi = va_arg(ap, int);
-      uint8_t* b = p->fragment[fi].start;
-      int rc;
-      printf("\trelease fragment %u at %p ... ", fi, b);
-      rc = fp_release(p, b);
-      printf("returned %d\n", rc);
-      break;
-    }
-    case PO_CHECK_FRAGMENT_LENGTH: { /* check length: PO_CHECK_FRAGMENT_LENGTH fragment_index expected_length */
-      int fi = va_arg(ap, int);
-      int len = p->fragment[fi].length;
-      int expected_len = va_arg(ap, int);
+      case PO_RELEASE: {        /* release: PO_RELEASE fragment_index */
+        int fi = va_arg(ap, int);
+        uint8_t* b = p->fragment[fi].start;
+        int rc;
+        printf("\trelease fragment %u at %p ... ", fi, b);
+        rc = fp_release(p, b);
+        printf("returned %d\n", rc);
+        break;
+      }
+      case PO_CHECK_FRAGMENT_LENGTH: { /* check length: PO_CHECK_FRAGMENT_LENGTH fragment_index expected_length */
+        int fi = va_arg(ap, int);
+        int len = p->fragment[fi].length;
+        int expected_len = va_arg(ap, int);
       
-      printf("\tchecking fragment %u length %d ... ", fi, len);
-      if (expected_len == len) {
-	printf("as expected\n");
-      } else {
-	printf("ERROR expected %d\n", expected_len);
-	CU_FAIL("exec check fragment length");
+        printf("\tchecking fragment %u length %d ... ", fi, len);
+        if (expected_len == len) {
+          printf("as expected\n");
+        } else {
+          printf("ERROR expected %d\n", expected_len);
+          CU_FAIL("exec check fragment length");
+        }
+        break;
       }
-      break;
-    }
-    case PO_CHECK_FRAGMENT_CONTENT: { /* check content: PO_CHECK_FRAGMENT_CONTENT fragment_index char offset length(-1=all) */
-      int fi = va_arg(ap, int);
-      int fill_char = va_arg(ap, int);
-      int offset = va_arg(ap, int);
-      int len = va_arg(ap, int);
-      fp_fragment_t f = p->fragment + fi;
-      uint8_t* b = f->start;
-      uint8_t* be = f->start + abs(f->length);
-      if ((0 > len) || (len > abs(f->length))) {
-	len = abs(f->length);
+      case PO_CHECK_FRAGMENT_CONTENT: { /* check content: PO_CHECK_FRAGMENT_CONTENT fragment_index char offset length(-1=all) */
+        int fi = va_arg(ap, int);
+        int fill_char = va_arg(ap, int);
+        int offset = va_arg(ap, int);
+        int len = va_arg(ap, int);
+        fp_fragment_t f = p->fragment + fi;
+        uint8_t* b = f->start;
+        uint8_t* be = f->start + abs(f->length);
+        if ((0 > len) || (len > abs(f->length))) {
+          len = abs(f->length);
+        }
+        b += offset;
+        if ((b + len) < be) {
+          be = b + len;
+        }
+        printf("\tcheck %u in %p..%p in %d@%u against '%c' (0x%02x) ... ", (int)(be-b), b, be, f->length, fi, fill_char, fill_char);
+        while (b < be) {
+          if (fill_char != *b) {
+            break;
+          }
+          ++b;
+        }
+        if (b < be) {
+          printf("FAIL '%c' (%02x) at %p\n", *b, 0xFF & *b, b);
+          CU_FAIL("content check");
+        } else {
+          printf("passed\n");
+        }
+        break;
       }
-      b += offset;
-      if ((b + len) < be) {
-	be = b + len;
-      }
-      printf("\tcheck %u in %p..%p in %d@%u against '%c' (0x%02x) ... ", (int)(be-b), b, be, f->length, fi, fill_char, fill_char);
-      while (b < be) {
-	if (fill_char != *b) {
-	  break;
-	}
-	++b;
-      }
-      if (b < be) {
-	printf("FAIL '%c' (%02x) at %p\n", *b, 0xFF & *b, b);
-	CU_FAIL("content check");
-      } else {
-	printf("passed\n");
-      }
-      break;
-    }
 
-    case PO_VALIDATE: {		/* validate: PO_VALIDATE */
-      int rc;
-      printf("\tvalidating pool ... ");
-      rc = fp_validate(p);
-      if (0 == rc) {
-	printf("succeeded\n");
-      } else {
-	printf("FAILED\n");
-	CU_FAIL("pool validation");
+      case PO_VALIDATE: {         /* validate: PO_VALIDATE */
+        int rc;
+        printf("\tvalidating pool ... ");
+        rc = fp_validate(p);
+        if (0 == rc) {
+          printf("succeeded\n");
+        } else {
+          printf("FAILED\n");
+          CU_FAIL("pool validation");
+        }
+        break;
       }
-      break;
-    }
-    case PO_FILL_FRAGMENT: {	/* fill fragment: PO_FILL_FRAGMENT fragment_index char offset length(-1=all) */
-      int fi = va_arg(ap, int);
-      int fill_char = va_arg(ap, int);
-      int offset = va_arg(ap, int);
-      int len = va_arg(ap, int);
-      fp_fragment_t f = p->fragment + fi;
-      uint8_t* b = f->start + offset;
-      uint8_t* be = f->start + abs(f->length);
-      b += offset;
-      if ((0 > len) || (len > abs(f->length))) {
-	len = abs(f->length);
+      case PO_FILL_FRAGMENT: {    /* fill fragment: PO_FILL_FRAGMENT fragment_index char offset length(-1=all) */
+        int fi = va_arg(ap, int);
+        int fill_char = va_arg(ap, int);
+        int offset = va_arg(ap, int);
+        int len = va_arg(ap, int);
+        fp_fragment_t f = p->fragment + fi;
+        uint8_t* b = f->start + offset;
+        uint8_t* be = f->start + abs(f->length);
+        b += offset;
+        if ((0 > len) || (len > abs(f->length))) {
+          len = abs(f->length);
+        }
+        if ((b + len) < be) {
+          be = b + len;
+        }
+        printf("\tfill %p..%p in %d@%u with '%c' (0x%02x)\n", b, be, f->length, fi, fill_char, fill_char);
+        memset(b, fill_char, be-b);
+        break;
       }
-      if ((b + len) < be) {
-	be = b + len;
-      }
-      printf("\tfill %p..%p in %d@%u with '%c' (0x%02x)\n", b, be, f->length, fi, fill_char, fill_char);
-      memset(b, fill_char, be-b);
-      break;
-    }
-    case PO_DISPLAY_POOL: {	/* display pool: PO_DISPLAY_POOL */
-      int fi;
+      case PO_DISPLAY_POOL: {     /* display pool: PO_DISPLAY_POOL */
+        int fi;
       
-      printf("\tPool %p with %u fragments and %u bytes from %p to %p:\n",
-	     (void*)p, p->fragment_count, (fp_size_t)(p->pool_end-p->pool_start),
-	     p->pool_start, p->pool_end);
-      for (fi = 0; fi < p->fragment_count; ++fi) {
-	fp_fragment_t f = p->fragment + fi;
-	uint8_t* b = f->start;
-	uint8_t* be = f->start + abs(f->length);
-	
-	printf("\t\t%u: ", fi);
-	if (FRAGMENT_IS_INACTIVE(f)) {
-	  printf("inactive fragment\n");
-	  continue;
-	}
-	if (FRAGMENT_IS_ALLOCATED(f)) {
-	  printf("%u allocated at %p: ", -f->length, f->start);
-	} else {
-	  printf("%u available at %p: ", f->length, f->start);
-	}
-	while (b < be) {
-	  putchar(*b++);
-	}
-	putchar('\n');
+        printf("\tPool %p with %u fragments and %u bytes from %p to %p:\n",
+               (void*)p, p->fragment_count, (fp_size_t)(p->pool_end-p->pool_start),
+               p->pool_start, p->pool_end);
+        for (fi = 0; fi < p->fragment_count; ++fi) {
+          fp_fragment_t f = p->fragment + fi;
+          uint8_t* b = f->start;
+          uint8_t* be = f->start + abs(f->length);
+        
+          printf("\t\t%u: ", fi);
+          if (FRAGMENT_IS_INACTIVE(f)) {
+            printf("inactive fragment\n");
+            continue;
+          }
+          if (FRAGMENT_IS_ALLOCATED(f)) {
+            printf("%u allocated at %p: ", -f->length, f->start);
+          } else {
+            printf("%u available at %p: ", f->length, f->start);
+          }
+          while (b < be) {
+            putchar(*b++);
+          }
+          putchar('\n');
+        }
+        break;
       }
-      break;
-    }
-    case PO_DISPLAY_FRAGMENT: {	/* display fragment: PO_DISPLAY_FRAGMENT fragment_index */
-      int fi = va_arg(ap, int);
-      fp_fragment_t f = p->fragment + fi;
-      uint8_t* b = f->start;
-      uint8_t* be = b + abs(f->length);
+      case PO_DISPLAY_FRAGMENT: { /* display fragment: PO_DISPLAY_FRAGMENT fragment_index */
+        int fi = va_arg(ap, int);
+        fp_fragment_t f = p->fragment + fi;
+        uint8_t* b = f->start;
+        uint8_t* be = b + abs(f->length);
 
-      printf("\tfragment %d@%u:\n\t\t", f->length, fi);
-      while (b < be) {
-	putchar(*b++);
+        printf("\tfragment %d@%u:\n\t\t", f->length, fi);
+        while (b < be) {
+          putchar(*b++);
+        }
+        putchar('\n');
+        break;
       }
-      putchar('\n');
-      break;
-    }
-    case PO_CHECK_IS_RESET: {			/* check reset: PO_CHECK_IS_RESET */
-      printf("\tchecking pool is reset\n");
-      CU_ASSERT_POOL_IS_RESET(p);
-      break;
-    }
-    case PO_RESIZE: {		/* resize fragment: PO_RESIZE fragment_index new_size */
-      int fi = va_arg(ap, int);
-      int len = va_arg(ap, int);
-      fp_fragment_t f = p->fragment + fi;
-      uint8_t* b;
-      uint8_t* be;
+      case PO_CHECK_IS_RESET: {                   /* check reset: PO_CHECK_IS_RESET */
+        printf("\tchecking pool is reset\n");
+        CU_ASSERT_POOL_IS_RESET(p);
+        break;
+      }
+      case PO_RESIZE: {           /* resize fragment: PO_RESIZE fragment_index new_size */
+        int fi = va_arg(ap, int);
+        int len = va_arg(ap, int);
+        fp_fragment_t f = p->fragment + fi;
+        uint8_t* b;
+        uint8_t* be;
 
-      printf("\tresize fragment %d@%u to %u ... ", f->length, fi, len);
-      b = fp_resize(p, f->start, len, &be);
-      if (NULL != b) {
-	printf("got %u at %p\n", (int)(be-b), b);
-      } else {
-	printf("failed\n");
+        printf("\tresize fragment %d@%u to %u ... ", f->length, fi, len);
+        b = fp_resize(p, f->start, len, &be);
+        if (NULL != b) {
+          printf("got %u at %p\n", (int)(be-b), b);
+        } else {
+          printf("failed\n");
+        }
+        break;
       }
-      break;
-    }
-    case PO_REALLOCATE: {	/* reallocate: PO_REALLOCATE fragment_index min_size max_size */
-      int fi = va_arg(ap, int);
-      int min_size = va_arg(ap, int);
-      int max_size = va_arg(ap, int);
-      uint8_t* b = p->fragment[fi].start;
-      uint8_t* be;
+      case PO_REALLOCATE: {       /* reallocate: PO_REALLOCATE fragment_index min_size max_size */
+        int fi = va_arg(ap, int);
+        int min_size = va_arg(ap, int);
+        int max_size = va_arg(ap, int);
+        uint8_t* b = p->fragment[fi].start;
+        uint8_t* be;
 
-      printf("\treallocate %d@%u %u..%u ... ", p->fragment[fi].length, fi, min_size, max_size);
-      b = fp_reallocate(p, b, min_size, max_size, &be);
-      if (NULL != b) {
-	printf("produced %p len %u\n", b, (unsigned int)(be-b));
-      } else {
-	printf("failed\n");
+        printf("\treallocate %d@%u %u..%u ... ", p->fragment[fi].length, fi, min_size, max_size);
+        b = fp_reallocate(p, b, min_size, max_size, &be);
+        if (NULL != b) {
+          printf("produced %p len %u\n", b, (unsigned int)(be-b));
+        } else {
+          printf("failed\n");
+        }
+        break;
       }
-      break;
-    }
-    default:
-      printf("Unrecognized command character '%c'\n", cmd);
-      CU_FAIL("execute_pool_ops");
+      default:
+        printf("Unrecognized command character '%c'\n", cmd);
+        CU_FAIL("execute_pool_ops");
     }
     printf("\tpool:");
     show_short_pool(p);
@@ -616,115 +621,115 @@ void
 test_execute_alloc ()
 {
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 16, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, 192,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, 0,
-		   PO_VALIDATE,
-		   PO_RELEASE, 0,
-		   PO_CHECK_IS_RESET,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 16, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, 192,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, 0,
+                   PO_VALIDATE,
+                   PO_RELEASE, 0,
+                   PO_CHECK_IS_RESET,
+                   PO_END_COMMANDS);
 
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 32, 32,
-		   PO_ALLOCATE, 32, 32,
-		   PO_ALLOCATE, 32, 32,
-		   PO_ALLOCATE, 32, 32,
-		   PO_ALLOCATE, 32, 32,
-		   PO_VALIDATE,
-		   PO_CHECK_FRAGMENT_LENGTH, 5, POOL_SIZE-5*32,
-		   PO_ALLOCATE, 32, 32,
-		   PO_CHECK_FRAGMENT_LENGTH, 5, -(POOL_SIZE-5*32),
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 32, 32,
+                   PO_ALLOCATE, 32, 32,
+                   PO_ALLOCATE, 32, 32,
+                   PO_ALLOCATE, 32, 32,
+                   PO_ALLOCATE, 32, 32,
+                   PO_VALIDATE,
+                   PO_CHECK_FRAGMENT_LENGTH, 5, POOL_SIZE-5*32,
+                   PO_ALLOCATE, 32, 32,
+                   PO_CHECK_FRAGMENT_LENGTH, 5, -(POOL_SIZE-5*32),
+                   PO_END_COMMANDS);
 
   /* Verify preference for larger fragment if acceptable one doesn't
    * reach maximum requested */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 30, 30,
-		   PO_ALLOCATE, 2, 2,
-		   PO_ALLOCATE, 62, 62,
-		   PO_FILL_FRAGMENT, 2, 'x', 0, -1,
-		   PO_ALLOCATE, 2, 2,
-		   PO_RELEASE, 0,
-		   PO_RELEASE, 2,
-		   PO_ALLOCATE, 16, 48,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -48,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, 14,
-		   PO_CHECK_FRAGMENT_LENGTH, 4, -2,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 30, 30,
+                   PO_ALLOCATE, 2, 2,
+                   PO_ALLOCATE, 62, 62,
+                   PO_FILL_FRAGMENT, 2, 'x', 0, -1,
+                   PO_ALLOCATE, 2, 2,
+                   PO_RELEASE, 0,
+                   PO_RELEASE, 2,
+                   PO_ALLOCATE, 16, 48,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -48,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, 14,
+                   PO_CHECK_FRAGMENT_LENGTH, 4, -2,
+                   PO_END_COMMANDS);
 
   /* Verify preference for smaller fragment if still meets maximum
    * requested */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 62, 62,
-		   PO_ALLOCATE, 2, 2,
-		   PO_ALLOCATE, 30, 30,
-		   PO_FILL_FRAGMENT, 2, 'x', 0, -1,
-		   PO_ALLOCATE, 2, 2,
-		   PO_RELEASE, 0,
-		   PO_RELEASE, 2,
-		   PO_ALLOCATE, 16, 24,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -24,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, 6,
-		   PO_CHECK_FRAGMENT_LENGTH, 4, -2,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 62, 62,
+                   PO_ALLOCATE, 2, 2,
+                   PO_ALLOCATE, 30, 30,
+                   PO_FILL_FRAGMENT, 2, 'x', 0, -1,
+                   PO_ALLOCATE, 2, 2,
+                   PO_RELEASE, 0,
+                   PO_RELEASE, 2,
+                   PO_ALLOCATE, 16, 24,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -24,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, 6,
+                   PO_CHECK_FRAGMENT_LENGTH, 4, -2,
+                   PO_END_COMMANDS);
 }
 
 void
 test_execute_release ()
 {
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, 64,
-		   PO_VALIDATE,
-		   PO_RELEASE, 0,
-		   PO_RELEASE, 2,
-		   PO_VALIDATE,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, 128,
-		   PO_VALIDATE,
-		   PO_RELEASE, 1,
-		   PO_CHECK_IS_RESET,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, 64,
+                   PO_VALIDATE,
+                   PO_RELEASE, 0,
+                   PO_RELEASE, 2,
+                   PO_VALIDATE,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, 128,
+                   PO_VALIDATE,
+                   PO_RELEASE, 1,
+                   PO_CHECK_IS_RESET,
+                   PO_END_COMMANDS);
 
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 32, 32,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 32, 32,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 32, 32,
-		   PO_ALLOCATE, 32, 32,
-		   PO_VALIDATE,
-		   PO_CHECK_FRAGMENT_LENGTH, 5, -32,
-		   PO_RELEASE, 5,
-		   PO_CHECK_FRAGMENT_LENGTH, 5, 32,
-		   PO_RELEASE, 0,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, 32,
-		   PO_RELEASE, 4,
-		   PO_CHECK_FRAGMENT_LENGTH, 4, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 5, 0,
-		   PO_VALIDATE,
-		   PO_RELEASE, 2,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, 32,
-		   PO_RELEASE, 3,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, 160,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
-		   PO_CHECK_FRAGMENT_LENGTH, 4, 0,
-		   PO_RELEASE, 1,
-		   PO_CHECK_IS_RESET,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 32, 32,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 32, 32,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 32, 32,
+                   PO_ALLOCATE, 32, 32,
+                   PO_VALIDATE,
+                   PO_CHECK_FRAGMENT_LENGTH, 5, -32,
+                   PO_RELEASE, 5,
+                   PO_CHECK_FRAGMENT_LENGTH, 5, 32,
+                   PO_RELEASE, 0,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, 32,
+                   PO_RELEASE, 4,
+                   PO_CHECK_FRAGMENT_LENGTH, 4, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 5, 0,
+                   PO_VALIDATE,
+                   PO_RELEASE, 2,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, 32,
+                   PO_RELEASE, 3,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, 160,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
+                   PO_CHECK_FRAGMENT_LENGTH, 4, 0,
+                   PO_RELEASE, 1,
+                   PO_CHECK_IS_RESET,
+                   PO_END_COMMANDS);
 }
 
 void
@@ -732,97 +737,97 @@ test_execute_resize ()
 {
   /* Shrink when following is available */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 32, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
-		   PO_RESIZE, 0, 48,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -48,
-		   PO_VALIDATE,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 32, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+                   PO_RESIZE, 0, 48,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -48,
+                   PO_VALIDATE,
+                   PO_END_COMMANDS);
 
   /* Shrink when following is inactive */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, POOL_SIZE, POOL_SIZE,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -POOL_SIZE,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, 0,
-		   PO_RESIZE, 0, 48,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -48,
-		   PO_VALIDATE,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, POOL_SIZE, POOL_SIZE,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -POOL_SIZE,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, 0,
+                   PO_RESIZE, 0, 48,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -48,
+                   PO_VALIDATE,
+                   PO_END_COMMANDS);
 
   /* Shrink when following is allocated */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
-		   PO_VALIDATE,
-		   PO_RESIZE, 0, 48,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -48,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, 16,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
-		   PO_VALIDATE,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+                   PO_VALIDATE,
+                   PO_RESIZE, 0, 48,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -48,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, 16,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
+                   PO_VALIDATE,
+                   PO_END_COMMANDS);
 
   /* Expand when following is available and can satisfy request */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 32, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, 192,
-		   PO_RESIZE, 0, 128,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, 128,
-		   PO_VALIDATE,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 32, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, 192,
+                   PO_RESIZE, 0, 128,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, 128,
+                   PO_VALIDATE,
+                   PO_END_COMMANDS);
 
   /* Expand when following is available but cannot satisfy request */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, 64,
-		   PO_RELEASE, 1,
-		   PO_VALIDATE,
-		   PO_RESIZE, 0, 192,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
-		   PO_VALIDATE,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, 64,
+                   PO_RELEASE, 1,
+                   PO_VALIDATE,
+                   PO_RESIZE, 0, 192,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
+                   PO_VALIDATE,
+                   PO_END_COMMANDS);
 
   /* Expand when following is active or inactive */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 128, 128,
-		   PO_ALLOCATE, 128, 128,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -128,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, 0,
-		   PO_RESIZE, 0, 192,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
-		   PO_RESIZE, 1, 192,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -128,
-		   PO_VALIDATE,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 128, 128,
+                   PO_ALLOCATE, 128, 128,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -128,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, 0,
+                   PO_RESIZE, 0, 192,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
+                   PO_RESIZE, 1, 192,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -128,
+                   PO_VALIDATE,
+                   PO_END_COMMANDS);
 }
 
 void
 test_execute_display ()
 {
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 64, 64,
-		   PO_DISPLAY_FRAGMENT, 0,
-		   PO_FILL_FRAGMENT, 0, 'a', 0, -1,
-		   PO_DISPLAY_FRAGMENT, 0,
-		   PO_CHECK_FRAGMENT_CONTENT, 0, 'a', 0, -1,
-		   PO_DISPLAY_POOL,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 64, 64,
+                   PO_DISPLAY_FRAGMENT, 0,
+                   PO_FILL_FRAGMENT, 0, 'a', 0, -1,
+                   PO_DISPLAY_FRAGMENT, 0,
+                   PO_CHECK_FRAGMENT_CONTENT, 0, 'a', 0, -1,
+                   PO_DISPLAY_POOL,
+                   PO_END_COMMANDS);
 }
 
 void
@@ -833,124 +838,124 @@ test_execute_reallocate ()
   
   /* Extend into following fragment */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_RELEASE, 1,
-		   PO_DISPLAY_POOL,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_RELEASE, 1,
+                   PO_DISPLAY_POOL,
+                   PO_END_COMMANDS);
   b = fp_reallocate(pool, pool->fragment[0].start, 96, 128, &be);
   CU_ASSERT_PTR_EQUAL(b, pool->fragment[0].start);
   CU_ASSERT_EQUAL(128, (int)(be-b));
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_DISPLAY_POOL,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
-		   PO_VALIDATE,
-		   PO_END_COMMANDS);
+                   PO_DISPLAY_POOL,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -128,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
+                   PO_VALIDATE,
+                   PO_END_COMMANDS);
 
   /* Move to end fragment, full use */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_DISPLAY_POOL,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_DISPLAY_POOL,
+                   PO_END_COMMANDS);
   b = fp_reallocate(pool, pool->fragment[0].start, 96, 128, &be);
   CU_ASSERT_PTR_EQUAL(b, pool->fragment[2].start);
   CU_ASSERT_EQUAL(128, (int)(be-b));
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_DISPLAY_POOL,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -128,
-		   PO_CHECK_FRAGMENT_CONTENT, 2, '0', 0, 64,
-		   PO_CHECK_FRAGMENT_CONTENT, 2, '?', 64, -1,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
-		   PO_VALIDATE,
-		   PO_END_COMMANDS);
+                   PO_DISPLAY_POOL,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -128,
+                   PO_CHECK_FRAGMENT_CONTENT, 2, '0', 0, 64,
+                   PO_CHECK_FRAGMENT_CONTENT, 2, '?', 64, -1,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
+                   PO_VALIDATE,
+                   PO_END_COMMANDS);
 
   /* Move to end fragment, partial use */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_DISPLAY_POOL,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_DISPLAY_POOL,
+                   PO_END_COMMANDS);
   b = fp_reallocate(pool, pool->fragment[0].start, 32, 96, &be);
   CU_ASSERT_PTR_EQUAL(b, pool->fragment[2].start);
   CU_ASSERT_EQUAL(96, (int)(be-b));
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_DISPLAY_POOL,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -96,
-		   PO_CHECK_FRAGMENT_CONTENT, 2, '0', 0, 32,
-		   PO_CHECK_FRAGMENT_CONTENT, 2, '?', 32, -1,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, 32,
-		   PO_CHECK_FRAGMENT_LENGTH, 4, 0,
-		   PO_VALIDATE,
-		   PO_END_COMMANDS);
+                   PO_DISPLAY_POOL,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -64,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -96,
+                   PO_CHECK_FRAGMENT_CONTENT, 2, '0', 0, 32,
+                   PO_CHECK_FRAGMENT_CONTENT, 2, '?', 32, -1,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, 32,
+                   PO_CHECK_FRAGMENT_LENGTH, 4, 0,
+                   PO_VALIDATE,
+                   PO_END_COMMANDS);
 
   /* Move to preceding fragment */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_RELEASE, 1,
-		   PO_DISPLAY_POOL,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_RELEASE, 1,
+                   PO_DISPLAY_POOL,
+                   PO_END_COMMANDS);
   b = fp_reallocate(pool, pool->fragment[2].start, 96, 128, &be);
   CU_ASSERT_PTR_EQUAL(b, pool->fragment[1].start);
   CU_ASSERT_EQUAL(128, (int)(be-b));
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_DISPLAY_POOL,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
-		   PO_CHECK_FRAGMENT_CONTENT, 0, '0', 0, -1,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -128,
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, 64,
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 64, 64,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
-		   PO_CHECK_FRAGMENT_CONTENT, 2, '3', 0, -1,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
-		   PO_VALIDATE,
-		   PO_END_COMMANDS);
+                   PO_DISPLAY_POOL,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+                   PO_CHECK_FRAGMENT_CONTENT, 0, '0', 0, -1,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -128,
+                   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, 64,
+                   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 64, 64,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -64,
+                   PO_CHECK_FRAGMENT_CONTENT, 2, '3', 0, -1,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, 0,
+                   PO_VALIDATE,
+                   PO_END_COMMANDS);
 
   /* Move to preceding fragment, take part of following */
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 64, 64,
-		   PO_ALLOCATE, 32, 32,
-		   PO_ALLOCATE, 16, 16,
-		   PO_RELEASE, 1,
-		   PO_RELEASE, 3,
-		   PO_DISPLAY_POOL,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 64, 64,
+                   PO_ALLOCATE, 32, 32,
+                   PO_ALLOCATE, 16, 16,
+                   PO_RELEASE, 1,
+                   PO_RELEASE, 3,
+                   PO_DISPLAY_POOL,
+                   PO_END_COMMANDS);
   b = fp_reallocate(pool, pool->fragment[2].start, 32, 160, &be);
   CU_ASSERT_PTR_EQUAL(b, pool->fragment[1].start);
   CU_ASSERT_EQUAL(160, (int)(be-b));
   execute_pool_ops(pool, __FILE__, __LINE__,
-		   PO_DISPLAY_POOL,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
-		   PO_CHECK_FRAGMENT_CONTENT, 0, '0', 0, -1,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -160,
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, 32,
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '1', 32, 32,
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 64, 64,
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '3', 128, 32,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -16,
-		   PO_CHECK_FRAGMENT_CONTENT, 2, '4', 0, -1,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, 16,
-		   PO_CHECK_FRAGMENT_LENGTH, 4, 0,
-		   PO_VALIDATE,
-		   PO_END_COMMANDS);
+                   PO_DISPLAY_POOL,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -64,
+                   PO_CHECK_FRAGMENT_CONTENT, 0, '0', 0, -1,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -160,
+                   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, 32,
+                   PO_CHECK_FRAGMENT_CONTENT, 1, '1', 32, 32,
+                   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 64, 64,
+                   PO_CHECK_FRAGMENT_CONTENT, 1, '3', 128, 32,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -16,
+                   PO_CHECK_FRAGMENT_CONTENT, 2, '4', 0, -1,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, 16,
+                   PO_CHECK_FRAGMENT_LENGTH, 4, 0,
+                   PO_VALIDATE,
+                   PO_END_COMMANDS);
 }
 
 void
@@ -1020,63 +1025,63 @@ test_pool_alignment ()
 
   /* Verify reallocation wholesale move */
   execute_pool_ops(p, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 3, 9,
-		   PO_ALLOCATE, 4, 9,
-		   PO_ALLOCATE, 5, 9,
-		   PO_RELEASE, 1,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, 10,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
-		   PO_REALLOCATE, 0, 7, 25,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, 20,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -10,
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, -1,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -26,
-		   PO_CHECK_FRAGMENT_CONTENT, 2, '0', 0, 7,
-		   PO_CHECK_FRAGMENT_CONTENT, 2, '?', 7, -1,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 3, 9,
+                   PO_ALLOCATE, 4, 9,
+                   PO_ALLOCATE, 5, 9,
+                   PO_RELEASE, 1,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, 10,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
+                   PO_REALLOCATE, 0, 7, 25,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, 20,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -10,
+                   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, -1,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -26,
+                   PO_CHECK_FRAGMENT_CONTENT, 2, '0', 0, 7,
+                   PO_CHECK_FRAGMENT_CONTENT, 2, '?', 7, -1,
+                   PO_END_COMMANDS);
 
   /* Verify reallocation resize */
   execute_pool_ops(p, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 3, 9,
-		   PO_ALLOCATE, 4, 9,
-		   PO_ALLOCATE, 5, 9,
-		   PO_RELEASE, 1,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, 10,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
-		   PO_REALLOCATE, 0, 7, 17,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -18,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, 2,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 3, 9,
+                   PO_ALLOCATE, 4, 9,
+                   PO_ALLOCATE, 5, 9,
+                   PO_RELEASE, 1,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, 10,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
+                   PO_REALLOCATE, 0, 7, 17,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -18,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, 2,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
+                   PO_END_COMMANDS);
   
   /* Verify reallocation shift down */
   execute_pool_ops(p, __FILE__, __LINE__,
-		   PO_RESET,
-		   PO_ALLOCATE, 3, 9,
-		   PO_ALLOCATE, 4, 9,
-		   PO_ALLOCATE, 5, 9,
-		   PO_ALLOCATE, 6, 9,
-		   PO_RELEASE, 1,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, 10,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, -10,
-		   PO_REALLOCATE, 2, 7, 17,
-		   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
-		   PO_CHECK_FRAGMENT_LENGTH, 1, -18,
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, 7,
-		   /* This next check verifies that the unaligned
-		    * min_size was used to preserve data.  This is
-		    * intentional. */
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '1', 7, 3,
-		   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 10, -1,
-		   PO_CHECK_FRAGMENT_LENGTH, 2, 2,
-		   PO_CHECK_FRAGMENT_LENGTH, 3, -10,
-		   PO_END_COMMANDS);
+                   PO_RESET,
+                   PO_ALLOCATE, 3, 9,
+                   PO_ALLOCATE, 4, 9,
+                   PO_ALLOCATE, 5, 9,
+                   PO_ALLOCATE, 6, 9,
+                   PO_RELEASE, 1,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, 10,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, -10,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, -10,
+                   PO_REALLOCATE, 2, 7, 17,
+                   PO_CHECK_FRAGMENT_LENGTH, 0, -10,
+                   PO_CHECK_FRAGMENT_LENGTH, 1, -18,
+                   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 0, 7,
+                   /* This next check verifies that the unaligned
+                    * min_size was used to preserve data.  This is
+                    * intentional. */
+                   PO_CHECK_FRAGMENT_CONTENT, 1, '1', 7, 3,
+                   PO_CHECK_FRAGMENT_CONTENT, 1, '2', 10, -1,
+                   PO_CHECK_FRAGMENT_LENGTH, 2, 2,
+                   PO_CHECK_FRAGMENT_LENGTH, 3, -10,
+                   PO_END_COMMANDS);
 }
 
 int
