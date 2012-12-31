@@ -14,7 +14,7 @@ OPTLDFLAGS ?= -Wl,-gc-sections
 endif # CROSS_COMPILE
 
 OPTCFLAGS ?= -g -O
-CPPFLAGS += -I.
+CPPFLAGS += -Iinclude
 CC = $(CROSS_COMPILE)gcc
 AR = $(CROSS_COMPILE)ar
 GCOV = $(CROSS_COMPILE)gcov
@@ -22,7 +22,7 @@ GCOV = $(CROSS_COMPILE)gcov
 CFLAGS = -Wall -Werror -ansi -std=c99 -pedantic $(OPTCFLAGS) $(AUX_CFLAGS)
 LDFLAGS = $(OPTLDFLAGS) $(AUX_LDFLAGS)
 
-SRC = fragpool.c
+SRC = src/fragpool.c
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
 
@@ -64,7 +64,6 @@ unittest:
 	&& $(MAKE) -C tests realclean \
 	&& $(MAKE) EXPOSE_INTERNALS=1 all \
 	&& $(MAKE) -C tests
-	if [ -f fragpool.gcda ] ; then $(GCOV) -a $(SRC) ; fi
 
 .PHONY: coverage
 coverage:
@@ -72,7 +71,8 @@ coverage:
 	&& $(MAKE) -C tests realclean \
 	&& $(MAKE) WITH_COVERAGE=1 EXPOSE_INTERNALS=1 all \
 	&& $(MAKE) -C tests coverage
-	if [ -f fragpool.gcda ] ; then $(GCOV) -a $(SRC) ; fi
+	for f in $(SRC:.c=) ; do ln -s $${f}.gcno; ln -s $${f}.gcda ; done
+	$(GCOV) -a $(SRC)
 
 %.d: %.c
 	@set -e; rm -f $@; \

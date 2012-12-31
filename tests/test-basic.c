@@ -1,5 +1,5 @@
-#include <fragpool.h>
-#include "fragpool_.h"
+#include <fragpool/fragpool.h>
+#include <fragpool/fragpool_.h>
 #include <CUnit/Basic.h>
 #include <stdio.h>
 #include <stdarg.h>

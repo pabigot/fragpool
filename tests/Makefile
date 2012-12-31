@@ -3,7 +3,7 @@ ifeq ($(WITH_COVERAGE),1)
 LDFLAGS += -fprofile-arcs
 endif # WITH_COVERAGE
 
-CPPFLAGS += -I..
+CPPFLAGS += -I../include
 FRAGPOOL_LIB = ../libfragpool.a
 LIBS = $(FRAGPOOL_LIB) -lcunit
 CFLAGS = -Wall -Werror -ansi -std=c99 -pedantic $(OPTCFLAGS)

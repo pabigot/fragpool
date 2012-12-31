@@ -31,7 +31,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "fragpool.h"
+#include <fragpool/fragpool.h>
 
 #define FRAGMENT_IS_ALLOCATED(_f) (0 > (_f)->length)
 #define FRAGMENT_IS_AVAILABLE(_f) (0 < (_f)->length)
