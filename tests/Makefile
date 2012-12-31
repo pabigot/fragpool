@@ -37,4 +37,4 @@ coverage: realclean
 	 sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	 rm -f $@.$$$$
 
-include $(DEP)
+-include $(DEP)

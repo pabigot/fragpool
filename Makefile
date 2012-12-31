@@ -60,13 +60,17 @@ realclean: clean
 
 .PHONY: unittest
 unittest:
-	$(MAKE) EXPOSE_INTERNALS=1 realclean all \
+	$(MAKE) realclean \
+	&& $(MAKE) -C tests realclean \
+	&& $(MAKE) EXPOSE_INTERNALS=1 all \
 	&& $(MAKE) -C tests
 	if [ -f fragpool.gcda ] ; then $(GCOV) -a $(SRC) ; fi
 
 .PHONY: coverage
 coverage:
-	$(MAKE) WITH_COVERAGE=1 EXPOSE_INTERNALS=1 realclean all \
+	$(MAKE) realclean \
+	&& $(MAKE) -C tests realclean \
+	&& $(MAKE) WITH_COVERAGE=1 EXPOSE_INTERNALS=1 all \
 	&& $(MAKE) -C tests coverage
 	if [ -f fragpool.gcda ] ; then $(GCOV) -a $(SRC) ; fi
 
@@ -76,4 +80,4 @@ coverage:
 	 sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	 rm -f $@.$$$$
 
-include $(DEP)
+-include $(DEP)
