@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Peter A. Bigot <bigotp@acm.org>
+/* Copyright (c) 2012, Peter A. Bigot
  *
  * All rights reserved.
  *
@@ -33,6 +33,14 @@
 #define FRAGPOOL_H_
 
 /** @file
+ *
+ * @brief Header providing interface for fragpool functions.
+ *
+ * See @ref index.
+ *
+ * @homepage http://github.com/pabigot/fragpool
+ * @copyright Copyright 2012, Peter A. Bigot.  Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a>
+ *
  * @mainpage Fragpool: Variable-sized packet memory management for embedded applications
  *
  * Fragpool is a memory management infrastructure designed to support
@@ -47,7 +55,8 @@
  * another layer, and the space is not available for new packets that
  * are received while previous packets are being processed.
  *
- * There are only a few functions:
+ * There are only a few functions, accessed by including
+ * <fragpool/fragpool.h>:
  *
  * @li fp_request() allocates a buffer given the minimum acceptable
  * and maximum expected final sizes;
@@ -71,13 +80,14 @@
  * callable from hard interrupt context.  Protection against
  * re-entrancy must be supplied by the caller.
  *
+ * @homepage http://github.com/pabigot/fragpool
  * @copyright Copyright 2012, Peter A. Bigot.  Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a>
  */
 
 #include <stdint.h>
 
 /** A integral monotonically increasing version number */
-#define FP_VERSION 20120126
+#define FP_VERSION 20121231
 
 /** Type used to represent a fragment size in API calls.
  * 

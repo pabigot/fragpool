@@ -1,6 +1,8 @@
 PROJECT_NAME = fragpool
 PROJECT_BRIEF = "Variable-sized packet memory management for embedded applications"
-PROJECT_NUMBER = 20120126
+PROJECT_NUMBER = 20121231
+STRIP_FROM_INC_PATH = include
+ALIASES += homepage="\par<b>Homepage\n"
 # Use "#if defined(FP_DOXYGEN)" when providing a stub declaration
 # to which documentation is attached.
 # Use "/* @cond DOXYGEN_EXCLUDE */ ... /* @endcond */" around the real
@@ -8,7 +10,8 @@ PROJECT_NUMBER = 20120126
 PREDEFINED += FP_DOXYGEN
 TAB_SIZE = 4
 OPTIMIZE_OUTPUT_FOR_C = YES
-INPUT = fragpool.h
+INPUT = include/
+EXCLUDE_PATTERNS = */*_.h
 TYPEDEF_HIDES_STRUCT = NO
 GENERATE_LATEX = NO
 ALPHABETICAL_INDEX = YES
