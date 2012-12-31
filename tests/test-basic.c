@@ -24,7 +24,7 @@ int clean_suite (void)
 static uint8_t pool_data[POOL_SIZE];
 static union {
   struct {
-    FP_POOL_STRUCT_COMMON();
+    FP_POOL_STRUCT_COMMON;
     struct fp_fragment_t fragment[POOL_FRAGMENTS];
   } fixed;
   struct fp_pool_t generic;
@@ -41,7 +41,7 @@ fp_pool_t const pool = &pool_union.generic;
 static uint8_t apool_data[2+POOL_SIZE];
 static union {
   struct {
-    FP_POOL_STRUCT_COMMON();
+    FP_POOL_STRUCT_COMMON;
     struct fp_fragment_t fragment[POOL_FRAGMENTS];
   } fixed;
   struct fp_pool_t generic;

@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2012, Peter A. Bigot <bigotp@acm.org>
+/* Copyright (c) 2012, Peter A. Bigot <bigotp@acm.org>
  *
  * All rights reserved.
  *

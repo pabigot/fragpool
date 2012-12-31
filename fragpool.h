@@ -47,10 +47,19 @@
  * another layer, and the space is not available for new packets that
  * are received while previous packets are being processed.
  *
- * fragpool's fp_request() function allocates a buffer given minimum
- * and maximum size.  fp_resize() and fp_reallocate() decrease or
- * increase the size of the reserved space, preserving initial
- * content.  fp_release() is ultimately invoked to return the buffer.
+ * There are only a few functions:
+ *
+ * @li fp_request() allocates a buffer given the minimum acceptable
+ * and maximum expected final sizes;
+ *
+ * @li fp_resize() and fp_reallocate() decrease or increase the size
+ * of the reserved space, preserving initial content; they differ in
+ * that fp_resize() is not permitted to move the buffer;
+ *
+ * @li fp_release() is ultimately invoked to return the buffer;
+ *
+ * @li fp_reset() clears the pool and fp_validate() checks it for
+ * consistency.
  *
  * The memory available for allocation and the degree of fragmentation
  * supported are fixed for the life of the pool, normally at the time
@@ -58,13 +67,11 @@
  * caller-provided sizes to maintain pool-defined alignment
  * constraints.
  *
- * All fragpool routines are non-blocking, and are intended to be
+ * @note All fragpool routines are non-blocking and are intended to be
  * callable from hard interrupt context.  Protection against
  * re-entrancy must be supplied by the caller.
  *
- * This code is licensed under BSD-3-Clause.
- *
- * @author Peter A. Bigot
+ * @copyright Copyright 2012, Peter A. Bigot.  Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a>
  */
 
 #include <stdint.h>
@@ -72,7 +79,10 @@
 /** A integral monotonically increasing version number */
 #define FP_VERSION 20120126
 
-/** A fragment size */
+/** Type used to represent a fragment size in API calls.
+ * 
+ * @note Due to sign tricks used internally, the effective maximum
+ * size is #fp_ssize_t. */
 typedef uint16_t fp_size_t;
 
 /** A signed fragment size, for internal use where the sign carries
@@ -111,6 +121,9 @@ typedef struct fp_fragment_t {
 
 /** Prefix common to all pool structures.
  *
+ * For documentation on these fields see the pseudo-structure
+ * #FP_POOL_STRUCT_COMMON_.
+ * 
  * Although struct fp_pool_t has a flexible array member that makes it
  * easy to dynamically allocate a pool structure, the whole point of
  * fragpool is its use in systems that don't do dynamic allocation.
@@ -121,37 +134,53 @@ typedef struct fp_fragment_t {
  @verbatim
  static uint8_t pool_data[POOL_SIZE];
  static union {
- struct {
- FP_POOL_STRUCT_COMMON();
- struct fp_fragment_t fragment[POOL_FRAGMENTS];
- } fixed;
- struct fp_pool_t generic;
+   struct {
+     FP_POOL_STRUCT_COMMON;
+     struct fp_fragment_t fragment[POOL_FRAGMENTS];
+   } fixed;
+   struct fp_pool_t generic;
  } pool_union = {
- .generic = {
- .pool_start = pool_data,
- .pool_end = pool_data + sizeof(pool_data),
- .fragment_count = POOL_FRAGMENTS
- }
+   .generic = {
+   .pool_start = pool_data,
+   .pool_end = pool_data + sizeof(pool_data),
+   .fragment_count = POOL_FRAGMENTS
+   }
  };
  fp_pool_t const pool = &pool_union.generic;
  @endverbatim
-*/
-#define FP_POOL_STRUCT_COMMON()                                         \
-  /** The address of the start of the pool */                           \
-  uint8_t* pool_start;                                                  \
-                                                                        \
-  /** The address past the end of the pool.  The number of octets in    \
-   * the pool is (pool_end-pool_start). */                              \
-  uint8_t* pool_end;                                                    \
-                                                                        \
-  /** The alignment of the fragments, in bytes.  E.g., a value of 2     \
-   * ensures addresses are 16-bit aligned; a value of 4 ensures         \
-   * addresses are 32-bit aligned.  Value must be a nonzero power of    \
-   * two. */                                                            \
-  uint8_t pool_alignment;                                               \
-                                                                        \
-  /** The number of fragments supported by the pool */                  \
+
+ */
+#define FP_POOL_STRUCT_COMMON                   \
+  uint8_t* pool_start;                          \
+  uint8_t* pool_end;                            \
+  uint8_t pool_alignment;                       \
   uint8_t fragment_count
+
+#ifdef FP_DOXYGEN
+/** Prefix common to all pool structures.
+ *
+ * @note This structure does not exist in its own right; the sequence
+ * of tags is generated in each structure using the
+ * #FP_POOL_STRUCT_COMMON macro.
+ */
+struct FP_POOL_STRUCT_COMMON_ {
+  /** The address of the start of the pool. */
+  uint8_t* pool_start;
+
+  /** The address past the end of the pool.  The number of octets in
+   * the pool is (pool_end-pool_start). */
+  uint8_t* pool_end;
+
+  /** The alignment of the fragments, in bytes.  E.g., a value of 2
+   * ensures addresses are 16-bit aligned; a value of 4 ensures
+   * addresses are 32-bit aligned.  Value must be a nonzero power of
+   * two. */
+  uint8_t pool_alignment;
+
+  /** The number of fragments supported by the pool. */
+  uint8_t fragment_count;
+};
+#endif /* FP_DOXYGEN */
 
 /** Bookkeeping for a fragment pool.
  *
@@ -160,7 +189,7 @@ typedef struct fp_fragment_t {
  * You don't get to inspect or mutate the fields of this structure, so
  * any descriptive comments are irrelevant to you. */
 typedef struct fp_pool_t {
-  FP_POOL_STRUCT_COMMON();
+  FP_POOL_STRUCT_COMMON;
 
   /** The fragment array.  Although in this declaration it is a
    * flexible array member, in general it should have at least two
@@ -185,12 +214,12 @@ void fp_reset (fp_pool_t pool);
 
 /** Obtain a block of memory from the pool.
  *
- * A block of memory of at least min_size octets is allocated from the
- * pool and returned to the caller.  The value pointed to by @p
+ * A block of memory of at least @p min_size octets is allocated from
+ * the pool and returned to the caller.  The value pointed to by @p
  * fragment_endp is updated to reflect the first byte past the end of
  * the allocated region.  The "best" available fragment is selected
  * taking into account the required @p min_size and the desired @p
- * max_size.  If the requested maximum size is larger than the
+ * max_size.  If the requested maximum size is smaller than the
  * selected fragment and there are slots available, the remainder is
  * split off as a new available fragment.
  *
@@ -202,7 +231,7 @@ void fp_reset (fp_pool_t pool);
  *
  * @param max_size the maximum size desired for the fragment, in
  * bytes.  This is increased if necessary to satisfy the pool
- * alignment requirements.  Use @c FP_MAX_FRAGMENT_SIZE to get the
+ * alignment requirements.  Use #FP_MAX_FRAGMENT_SIZE to get the
  * largest available fragment.
  *
  * @param fragment_endp where to store the end of the fragment
@@ -237,16 +266,17 @@ uint8_t* fp_request (fp_pool_t pool,
  *
  * @param new_size the new desired size for the fragment, in bytes.
  * This is increased if necessary to satisfy the pool alignment
- * requirements.  Use @c FP_MAX_FRAGMENT_SIZE to get the largest
+ * requirements.  Use #FP_MAX_FRAGMENT_SIZE to get the largest
  * available fragment.
  *
- * @param fragment_endp where to store the end of the fragment
+ * @param fragment_endp where to store the end of the fragment.  This
+ * must not be @c NULL.
  *
  * @return @p bp if the resize succeeded, or a null pointer if an
  * invalid fragment or pool address was provided.  In either case, the
  * @p new_size octets beginning at @p bp are unchanged.  @c
- * *fragment_endp is updated to reflect the end of the fragment,
- * whether the resize succeeded or failed.
+ * *fragment_endp is updated to reflect the end of the fragment after
+ * any resize occurred.
  */
 uint8_t* fp_resize (fp_pool_t pool,
                     uint8_t* bp,
@@ -281,7 +311,7 @@ uint8_t* fp_resize (fp_pool_t pool,
  *
  * @param max_size the maximum size desired for the fragment, in
  * bytes.  This is increased if necessary to satisfy the pool
- * alignment requirements.  Use @c FP_MAX_FRAGMENT_SIZE to get the
+ * alignment requirements.  Use #FP_MAX_FRAGMENT_SIZE to get the
  * largest available fragment.
  *
  * @param fragment_endp where to store the end of the fragment.  The
