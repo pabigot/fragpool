@@ -87,7 +87,7 @@
 #include <stdint.h>
 
 /** A integral monotonically increasing version number */
-#define FP_VERSION 20121231
+#define FP_VERSION 20130101
 
 /** Type used to represent a fragment size in API calls.
  * 
