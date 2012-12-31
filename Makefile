@@ -59,6 +59,12 @@ unittest:
 	&& $(MAKE) -C tests
 	if [ -f fragpool.gcda ] ; then $(GCOV) -a $(SRC) ; fi
 
+.PHONY: coverage
+coverage:
+	$(MAKE) WITH_COVERAGE=1 EXPOSE_INTERNALS=1 realclean all \
+	&& $(MAKE) -C tests coverage
+	if [ -f fragpool.gcda ] ; then $(GCOV) -a $(SRC) ; fi
+
 %.d: %.c
 	@set -e; rm -f $@; \
 	 $(CC) -MM $(CPPFLAGS) $< > $@.$$$$; \
