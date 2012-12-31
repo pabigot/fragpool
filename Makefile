@@ -8,6 +8,11 @@ AUX_CFLAGS += -fprofile-arcs -ftest-coverage
 AUX_LDFLAGS += -fprofile-arcs
 endif # WITH_COVERAGE
 
+ifeq ($(CROSS_COMPILE),msp430-)
+OPTCFLAGS ?= -g -Os -ffunction-sections -fdata-sections
+OPTLDFLAGS ?= -Wl,-gc-sections
+endif # CROSS_COMPILE
+
 OPTCFLAGS ?= -g -O
 CPPFLAGS += -I.
 CC = $(CROSS_COMPILE)gcc
@@ -15,7 +20,7 @@ AR = $(CROSS_COMPILE)ar
 GCOV = $(CROSS_COMPILE)gcov
 
 CFLAGS = -Wall -Werror -ansi -std=c99 -pedantic $(OPTCFLAGS) $(CPPFLAGS) $(AUX_CFLAGS)
-LDFLAGS = $(AUX_LDFLAGS)
+LDFLAGS = $(OPTLDFLAGS) $(AUX_LDFLAGS)
 
 SRC = fragpool.c
 OBJ = $(SRC:.c=.o)
