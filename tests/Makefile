@@ -6,7 +6,7 @@ endif # WITH_COVERAGE
 CPPFLAGS += -I..
 FRAGPOOL_LIB = ../libfragpool.a
 LIBS = $(FRAGPOOL_LIB) -lcunit
-CFLAGS = -Wall -Werror -ansi -std=c99 -pedantic $(CPPFLAGS) $(OPTCFLAGS)
+CFLAGS = -Wall -Werror -ansi -std=c99 -pedantic $(OPTCFLAGS)
 
 SRC = test-basic.c
 OBJ = $(SRC:.c=.o)

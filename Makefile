@@ -19,7 +19,7 @@ CC = $(CROSS_COMPILE)gcc
 AR = $(CROSS_COMPILE)ar
 GCOV = $(CROSS_COMPILE)gcov
 
-CFLAGS = -Wall -Werror -ansi -std=c99 -pedantic $(OPTCFLAGS) $(CPPFLAGS) $(AUX_CFLAGS)
+CFLAGS = -Wall -Werror -ansi -std=c99 -pedantic $(OPTCFLAGS) $(AUX_CFLAGS)
 LDFLAGS = $(OPTLDFLAGS) $(AUX_LDFLAGS)
 
 SRC = fragpool.c
