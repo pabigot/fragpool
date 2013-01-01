@@ -129,10 +129,10 @@ find_best_fragment (fp_pool_t p,
   do {
     /* Candidate must be available (positive length) with at least the
        minimum size */
-    if (min_size <= f->length) {
+    if ((fp_ssize_t)min_size <= f->length) {
       /* Replace if we have no best fragment, or we like the new one
        * better. */
-      if ((NULL == bf) || PREFER_NEW_SIZE(f->length, bf->length, max_size)) {
+      if ((NULL == bf) || PREFER_NEW_SIZE(f->length, bf->length, (fp_ssize_t)max_size)) {
         bf = f;
       }
     }
@@ -324,7 +324,7 @@ fp_resize (fp_pool_t p,
         /* Extend to following fragment? */
         if (FRAGMENT_IS_AVAILABLE(nf)) {
           fp_size_t lacking = new_size - cur_size;
-          if (nf->length > lacking) {
+          if (nf->length > (fp_ssize_t)lacking) {
             /* More available than needed; take only what's requested */
             nf->start += lacking;
             nf->length -= lacking;
