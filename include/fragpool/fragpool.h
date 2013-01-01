@@ -286,9 +286,11 @@ uint8_t* fp_request (fp_pool_t pool,
  * @return @p bp if the resize succeeded, or a null pointer if an
  * invalid fragment or pool address was provided.  In either case, the
  * @p new_size octets beginning at @p bp are unchanged.  @c
- * *fragment_endp is updated to reflect the end of the fragment after
- * any resize occurred.
- */
+ * *fragment_endp is updated to reflect the actual end of the fragment
+ * after the resize completes.
+ *
+ * @note Expect <tt>new_size <= (*fragment_endp - bp)</tt> to hold on
+ * successful completion.  Equality should not be expected. */
 uint8_t* fp_resize (fp_pool_t pool,
                     uint8_t* bp,
                     fp_size_t new_size,
