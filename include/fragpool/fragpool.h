@@ -151,9 +151,10 @@ typedef struct fp_fragment_t {
    struct fp_pool_t generic;
  } pool_union = {
    .generic = {
-   .pool_start = pool_data,
-   .pool_end = pool_data + sizeof(pool_data),
-   .fragment_count = POOL_FRAGMENTS
+     .pool_start = pool_data,
+     .pool_end = pool_data + sizeof(pool_data),
+     .pool_alignment = sizeof(int),
+     .fragment_count = POOL_FRAGMENTS,
    }
  };
  fp_pool_t const pool = &pool_union.generic;
