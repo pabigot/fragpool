@@ -348,7 +348,7 @@ uint8_t* fp_reallocate (fp_pool_t pool,
  * @return zero if the block is released, or an error code if @p bp is
  * invalid. */
 int fp_release (fp_pool_t pool,
-                uint8_t* bp);
+                const uint8_t* bp);
 
 /** Verify the integrity of the pool.
  *

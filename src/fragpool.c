@@ -77,7 +77,7 @@ fp_ssize_t align_size_down (fp_pool_t p,
  * pointer within the pool. */
 static fp_fragment_t
 get_fragment (fp_pool_t p,
-              uint8_t* bp)
+              const uint8_t* bp)
 {
   fp_fragment_t f = p->fragment;
   fp_fragment_t fe = f + p->fragment_count;
@@ -275,7 +275,7 @@ fp_request (fp_pool_t p,
 
 int
 fp_release (fp_pool_t p,
-            uint8_t* bp)
+            const uint8_t* bp)
 {
   fp_fragment_t f = get_fragment(p, bp);
   fp_fragment_t nf;
