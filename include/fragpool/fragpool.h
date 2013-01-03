@@ -51,9 +51,10 @@
  * interface such as HDLC.  The expectation is that the final length
  * of a packet is not known at the point where stream reception
  * starts.  Consequently a system is obliged to allocate a large
- * buffer.  Once the packet is complete, the data must be passed to
- * another layer, and the space is not available for new packets that
- * are received while previous packets are being processed.
+ * buffer.  Once the packet is complete the data must be passed to
+ * another layer, and the unused space should be reclaimed and made
+ * available for new packets that are received while previous packets
+ * are being processed.
  *
  * There are only a few functions, accessed by including
  * <fragpool/fragpool.h>:
