@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">fragpool
-   &#160;<span id="projectnumber">20121231</span>
+   &#160;<span id="projectnumber">20130103</span>
    </div>
    <div id="projectbrief">Variable-sized packet memory management for embedded applications</div>
   </td>
@@ -111,7 +111,7 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a08ea0a54e22a10ba28949c35edd341ce"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="fragpool_8h.html#a08ea0a54e22a10ba28949c35edd341ce">FP_VERSION</a>&#160;&#160;&#160;20121231</td></tr>
+<tr class="memitem:a08ea0a54e22a10ba28949c35edd341ce"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="fragpool_8h.html#a08ea0a54e22a10ba28949c35edd341ce">FP_VERSION</a>&#160;&#160;&#160;20130103</td></tr>
 <tr class="separator:a08ea0a54e22a10ba28949c35edd341ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afbc537581fe0c6aeb6b3f7346237f4c4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="fragpool_8h.html#afbc537581fe0c6aeb6b3f7346237f4c4">FP_MAX_FRAGMENT_SIZE</a>&#160;&#160;&#160;INT16_MAX</td></tr>
 <tr class="separator:afbc537581fe0c6aeb6b3f7346237f4c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -141,8 +141,8 @@ Functions</h2></td></tr>
 <tr class="separator:aad6744155cd0e00fb586f91b79628f6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6d4d9d64c34ba2dd50c24cb90446bc3e"><td class="memItemLeft" align="right" valign="top">uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="fragpool_8h.html#a6d4d9d64c34ba2dd50c24cb90446bc3e">fp_reallocate</a> (<a class="el" href="structfp__pool__t.html">fp_pool_t</a> pool, uint8_t *bp, <a class="el" href="fragpool_8h.html#a21432708f9e49a8b8528f075bd51ce4b">fp_size_t</a> min_size, <a class="el" href="fragpool_8h.html#a21432708f9e49a8b8528f075bd51ce4b">fp_size_t</a> max_size, uint8_t **fragment_endp)</td></tr>
 <tr class="separator:a6d4d9d64c34ba2dd50c24cb90446bc3e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2867868f7aca05141d352aac0cf21810"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="fragpool_8h.html#a2867868f7aca05141d352aac0cf21810">fp_release</a> (<a class="el" href="structfp__pool__t.html">fp_pool_t</a> pool, uint8_t *bp)</td></tr>
-<tr class="separator:a2867868f7aca05141d352aac0cf21810"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a12f8115544a2533a7c664d60877a2efe"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="fragpool_8h.html#a12f8115544a2533a7c664d60877a2efe">fp_release</a> (<a class="el" href="structfp__pool__t.html">fp_pool_t</a> pool, const uint8_t *bp)</td></tr>
+<tr class="separator:a12f8115544a2533a7c664d60877a2efe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae3b9b2fe5781a2714ab320b90151e296"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="fragpool_8h.html#ae3b9b2fe5781a2714ab320b90151e296">fp_validate</a> (const <a class="el" href="structfp__pool__t.html">fp_pool_t</a> pool)</td></tr>
 <tr class="separator:ae3b9b2fe5781a2714ab320b90151e296"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -150,7 +150,7 @@ Functions</h2></td></tr>
 <div class="textblock"><p>Header providing interface for fragpool functions. </p>
 <p>See <a class="el" href="index.html">Fragpool: Variable-sized packet memory management for embedded applications</a>.</p>
 <dl class="section user"><dt>Homepage</dt><dd><a href="http://github.com/pabigot/fragpool">http://github.com/pabigot/fragpool</a> </dd></dl>
-<dl class="section copyright"><dt>Copyright</dt><dd>Copyright 2012, Peter A. Bigot. Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a> </dd></dl>
+<dl class="section copyright"><dt>Copyright</dt><dd>Copyright 2012-2013, Peter A. Bigot. Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a> </dd></dl>
 </div><h2 class="groupheader">Macro Definition Documentation</h2>
 <a class="anchor" id="a73c148db387f65467ac8b3abb5965f39"></a>
 <div class="memitem">
@@ -203,9 +203,10 @@ static union {
   struct fp_pool_t generic;
 } pool_union = {
   .generic = {
-  .pool_start = pool_data,
-  .pool_end = pool_data + sizeof(pool_data),
-  .fragment_count = POOL_FRAGMENTS
+    .pool_start = pool_data,
+    .pool_end = pool_data + sizeof(pool_data),
+    .pool_alignment = sizeof(int),
+    .fragment_count = POOL_FRAGMENTS,
   }
 };
 fp_pool_t const pool = &amp;pool_union.generic;
@@ -217,7 +218,7 @@ fp_pool_t const pool = &amp;pool_union.generic;
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define FP_VERSION&#160;&#160;&#160;20121231</td>
+          <td class="memname">#define FP_VERSION&#160;&#160;&#160;20130103</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -341,7 +342,7 @@ fp_pool_t const pool = &amp;pool_union.generic;
 
 </div>
 </div>
-<a class="anchor" id="a2867868f7aca05141d352aac0cf21810"></a>
+<a class="anchor" id="a12f8115544a2533a7c664d60877a2efe"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -354,7 +355,7 @@ fp_pool_t const pool = &amp;pool_union.generic;
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramtype">const uint8_t *&#160;</td>
           <td class="paramname"><em>bp</em>&#160;</td>
         </tr>
         <tr>
@@ -499,7 +500,8 @@ fp_pool_t const pool = &amp;pool_union.generic;
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd><code>bp</code> if the resize succeeded, or a null pointer if an invalid fragment or pool address was provided. In either case, the <code>new_size</code> octets beginning at <code>bp</code> are unchanged. <code>*fragment_endp</code> is updated to reflect the end of the fragment after any resize occurred. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd><code>bp</code> if the resize succeeded, or a null pointer if an invalid fragment or pool address was provided. In either case, the <code>new_size</code> octets beginning at <code>bp</code> are unchanged. <code>*fragment_endp</code> is updated to reflect the actual end of the fragment after the resize completes.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Expect <code>new_size &lt;= (*fragment_endp - bp)</code> to hold on successful completion. Equality should not be expected. </dd></dl>
 
 </div>
 </div>
@@ -530,7 +532,7 @@ fp_pool_t const pool = &amp;pool_union.generic;
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Dec 31 2012 12:38:52 for fragpool by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Jan 3 2013 15:53:32 for fragpool by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.2
 </small></address>

@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">fragpool
-   &#160;<span id="projectnumber">20121231</span>
+   &#160;<span id="projectnumber">20130103</span>
    </div>
    <div id="projectbrief">Variable-sized packet memory management for embedded applications</div>
   </td>
@@ -88,7 +88,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li><a class="el" href="fragpool_8h.html#aad6744155cd0e00fb586f91b79628f6c">fp_resize()</a> and <a class="el" href="fragpool_8h.html#a6d4d9d64c34ba2dd50c24cb90446bc3e">fp_reallocate()</a> decrease or increase the size of the reserved space, preserving initial content; they differ in that <a class="el" href="fragpool_8h.html#aad6744155cd0e00fb586f91b79628f6c">fp_resize()</a> is not permitted to move the buffer;</li>
 </ul>
 <ul>
-<li><a class="el" href="fragpool_8h.html#a2867868f7aca05141d352aac0cf21810">fp_release()</a> is ultimately invoked to return the buffer;</li>
+<li><a class="el" href="fragpool_8h.html#a12f8115544a2533a7c664d60877a2efe">fp_release()</a> is ultimately invoked to return the buffer;</li>
 </ul>
 <ul>
 <li><a class="el" href="fragpool_8h.html#a36b73aec926b84742e2dbb01bd4866bc">fp_reset()</a> clears the pool and <a class="el" href="fragpool_8h.html#ae3b9b2fe5781a2714ab320b90151e296">fp_validate()</a> checks it for consistency.</li>
@@ -96,11 +96,11 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <p>The memory available for allocation and the degree of fragmentation supported are fixed for the life of the pool, normally at the time the application is compiled. Allocation will adjust caller-provided sizes to maintain pool-defined alignment constraints.</p>
 <dl class="section note"><dt>Note</dt><dd>All fragpool routines are non-blocking and are intended to be callable from hard interrupt context. Protection against re-entrancy must be supplied by the caller.</dd></dl>
 <dl class="section user"><dt>Homepage</dt><dd><a href="http://github.com/pabigot/fragpool">http://github.com/pabigot/fragpool</a> </dd></dl>
-<dl class="section copyright"><dt>Copyright</dt><dd>Copyright 2012, Peter A. Bigot. Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a> </dd></dl>
+<dl class="section copyright"><dt>Copyright</dt><dd>Copyright 2012-2013, Peter A. Bigot. Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a> </dd></dl>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Dec 31 2012 12:38:52 for fragpool by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Jan 3 2013 15:53:32 for fragpool by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.2
 </small></address>
