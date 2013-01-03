@@ -7,9 +7,10 @@ The use case is an embedded system which passes data between a
 stream-oriented interface such as a UART and a packet-oriented interface
 such as HDLC.  The expectation is that the final length of a packet is not
 known at the point where stream reception starts.  Consequently a system is
-obliged to allocate a large buffer.  Once the packet is complete, the data
-must be passed to another layer, and the space is not available for new
-packets that are received while previous packets are being processed.
+obliged to allocate a large buffer.  Once the packet is complete the data
+must be passed to another layer, and the unused space should be reclaimed
+and made available for new packets that are received while previous packets
+are being processed.
 
 Fragpool features:
 
@@ -19,6 +20,9 @@ Fragpool features:
   received data in a new buffer;
 
 * API supports request, resize, and release of buffers;
+
+* Buffers may be released in arbitrary order based on application needs (not
+  necessarily in the order they were allocated);
 
 * Configurable pool size and number of active buffers per pool;
 
