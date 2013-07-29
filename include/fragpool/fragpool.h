@@ -91,7 +91,7 @@
 #define FP_VERSION 20130104
 
 /** Type used to represent a fragment size in API calls.
- * 
+ *
  * @note Due to sign tricks used internally, the effective maximum
  * size is #fp_ssize_t. */
 typedef uint16_t fp_size_t;
@@ -134,7 +134,7 @@ typedef struct fp_fragment_t {
  *
  * For documentation on these fields see the pseudo-structure
  * #FP_POOL_STRUCT_COMMON_.
- * 
+ *
  * Although struct fp_pool_t has a flexible array member that makes it
  * easy to dynamically allocate a pool structure, the whole point of
  * fragpool is its use in systems that don't do dynamic allocation.
