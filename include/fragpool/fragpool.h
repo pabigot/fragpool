@@ -1,4 +1,4 @@
-/* Copyright 2012-2013, Peter A. Bigot
+/* Copyright 2012-2017, Peter A. Bigot
  *
  * All rights reserved.
  *
@@ -39,7 +39,7 @@
  * See @ref index.
  *
  * @homepage http://github.com/pabigot/fragpool
- * @copyright Copyright 2012-2013, Peter A. Bigot.  Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a>
+ * @copyright Copyright 2012-2017, Peter A. Bigot.  Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a>
  *
  * @mainpage Fragpool: Variable-sized packet memory management for embedded applications
  *
@@ -82,13 +82,13 @@
  * re-entrancy must be supplied by the caller.
  *
  * @homepage http://github.com/pabigot/fragpool
- * @copyright Copyright 2012-2013, Peter A. Bigot.  Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a>
+ * @copyright Copyright 2012-2017, Peter A. Bigot.  Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a>
  */
 
 #include <stdint.h>
 
 /** A integral monotonically increasing version number */
-#define FP_VERSION 20130104
+#define FP_VERSION 20130729
 
 /** Type used to represent a fragment size in API calls.
  *

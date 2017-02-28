@@ -1,4 +1,4 @@
-/* Copyright 2012-2013, Peter A. Bigot
+/* Copyright 2012-2017, Peter A. Bigot
  *
  * All rights reserved.
  *
@@ -42,7 +42,7 @@
  * Doxygen.
  *
  * @homepage http://github.com/pabigot/fragpool
- * @copyright Copyright 2012-2013, Peter A. Bigot.  Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a>
+ * @copyright Copyright 2012-2017, Peter A. Bigot.  Licensed under <a href="http://www.opensource.org/licenses/BSD-3-Clause">BSD-3-Clause</a>
  */
 
 /** @cond DOXYGEN_EXCLUDE */

@@ -1,4 +1,4 @@
-Release: 20130104
+Release: 20130729
 
 Fragpool is a memory management infrastructure designed to support
 stream-to-packet layer interfaces in memory constrained devices.
@@ -36,7 +36,7 @@ Please see the `documentation`_, `issue tracker`_, and
 
 or by downloading the master branch via: https://github.com/pabigot/fragpool/tarball/master
 
-Copyright 2012-2013, Peter A. Bigot, and licensed under `BSD-3-Clause`_.
+Copyright 2012-2017, Peter A. Bigot, and licensed under `BSD-3-Clause`_.
 
 .. _documentation: http://pabigot.github.com/fragpool/
 .. _issue tracker: http://github.com/pabigot/fragpool/issues
