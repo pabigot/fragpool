@@ -450,9 +450,10 @@ fp_reallocate (fp_pool_t p,
     }
     return frs->start;
   }
+  const uint8_t* fstart = f->start;
   bp = complete_allocation(p, bf, max_size, fragment_endp);
-  memmove(bp, f->start, copy_len);
-  fp_release(p, f->start);
+  memmove(bp, fstart, copy_len);
+  fp_release(p, fstart);
   return bp;
 }
 
