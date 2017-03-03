@@ -28,9 +28,8 @@ Fragpool features:
 
 * Pool configuration can be done at compile-time or at runtime;
 
-
-Please see the `documentation`_, `issue tracker`_, and
-`homepage`_ on github.  Get a copy using git::
+Please see the `documentation`_, `issue tracker`_, and `homepage`_ on
+github.  Get a copy using git::
 
  git clone git://github.com/pabigot/fragpool.git
 
@@ -38,7 +37,7 @@ or by downloading the master branch via: https://github.com/pabigot/fragpool/tar
 
 Copyright 2012-2017, Peter A. Bigot, and licensed under `BSD-3-Clause`_.
 
-.. _documentation: http://pabigot.github.com/fragpool/
+.. _documentation: http://pabigot.github.io/fragpool/
 .. _issue tracker: http://github.com/pabigot/fragpool/issues
 .. _homepage: http://github.com/pabigot/fragpool
 .. _BSD-3-Clause: http://www.opensource.org/licenses/BSD-3-Clause
